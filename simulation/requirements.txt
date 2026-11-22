@@ -1,0 +1,7 @@
+pybullet>=3.2.6
+gym-pybullet-drones @ git+https://github.com/utiasDSL/gym-pybullet-drones.git
+gymnasium
+transforms3d
+numpy
+scipy
+opencv-python

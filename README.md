@@ -82,7 +82,33 @@ Built on **PyBullet** with **gym-pybullet-drones** quadcopter physics. Details a
 
 ## 📊 Results
 
-_Filled in from simulation runs._
+These come from the PyBullet simulation (5 drones, 12 m × 12 m block, 8 hidden victims and 2 heat decoys). Reproduce them with `python run_mission.py`.
+
+| Metric | Result |
+|--------|--------|
+| Victims found | **8 / 8** |
+| Partial-body victims found (hand, foot, head) | **3 / 3** |
+| Buried victim found only by phone signal | **1** |
+| Heat signals discarded by AI | **0** (both decoys sent to the rescuer to verify) |
+| Area searched | **100%** |
+| Full mission time (incl. trapped drone + recharge) | **110 s** |
+| Self-healing events handled | Low battery → recharge → rejoin; drone trapped → SOS + zone taken over |
+| Phone location error | **0.0 – 0.32 m** |
+| Unsafe direct routes caught and rerouted | **1** (radiation zone: dose cut 6.96 → 1.71) |
+
+**Swarm vs single drone** (same scene, no aftershock):
+
+| | 5-drone swarm | 1 drone |
+|---|---|---|
+| Time to search the whole area | **84 s** | 254 s |
+| Time to find all visible victims | **51 s** | 171 s |
+| Time to first victim | **13 s** | 30 s |
+
+→ The swarm finds every victim about **3.4× faster**.
+
+![Rescuer map](simulation/results/final_map.png)
+
+🎬 Simulation recording: [`simulation/results/halo_demo.mp4`](simulation/results/halo_demo.mp4)
 
 ## 🔧 From simulation to reality
 

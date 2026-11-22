@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+simulation/results/_raw.mp4
+.venv/
