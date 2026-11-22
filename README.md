@@ -50,7 +50,8 @@ Rescuer marks area ──► Swarm splits into zones ──► Each drone search
 | 11 | 🧠 **Edge autonomy (multi-agent AI)** | A central command AI talks to rescuers, and **each drone runs its own AI agent**. If debris cuts the signal, drones keep working on their own and sync when they reconnect. |
 | 12 | 🚧 **Obstacle & collision avoidance** | Drones avoid buildings, debris and each other. |
 | 13 | 📦 **Relief drops** | Light payloads (medicine, water pouches, a radio) delivered to victims waiting for rescue. Especially useful in **floods**. |
-| 14 | 🖥️ **Live rescuer dashboard** | Map with drone positions, zones, victims (with photos), hazards and safe routes. |
+| 14 | 🖥️ **Live rescuer dashboard** | Map with thermal red zones, live AI verdicts, victims with thermal + photo, hazards, drones, rescue teams and safe routes. |
+| 15 | 🚑 **Rescue team dispatch** | Command AI sends ground teams to victims by priority along safe routes. Uncertain photos are verified by a human first. |
 
 ---
 
@@ -78,37 +79,53 @@ Rescuer marks area ──► Swarm splits into zones ──► Each drone search
 
 Built on **PyBullet** with **gym-pybullet-drones** quadcopter physics. Details and run instructions are in [`simulation/`](simulation/).
 
-**Demo scenario:** earthquake hits a city block → rescuer marks the area → drones split into zones → heat signals photographed and AI-checked → one drone returns to recharge and the swarm self-heals → a drone gets trapped and sends SOS → signal drops and drones keep working on their own → safe routes appear on the dashboard.
+**Demo scenario:** earthquake hits a city block → rescuer marks the area → 6 drones split into zones → heat signals photographed and AI-checked → one drone returns to recharge and the swarm self-heals → a drone gets trapped and sends SOS → signal drops and drones keep working on their own → 3 rescue teams follow safe routes to all 20 victims, most urgent first.
 
 ## 📊 Results
 
-These come from the PyBullet simulation (5 drones, 12 m × 12 m block, 8 hidden victims and 2 heat decoys). Reproduce them with `python run_mission.py`.
+From the PyBullet simulation: **6 drones**, **20 hidden victims** (7 only partly visible, 3 fully buried), **3 heat decoys** and **3 ground rescue teams** in an earthquake-hit block. It's a 12 m scale model of a ~100 m block. Reproduce it with `python simulation/run_mission.py`.
 
 | Metric | Result |
 |--------|--------|
-| Victims found | **8 / 8** |
-| Partial-body victims found (hand, foot, head) | **3 / 3** |
-| Buried victim found only by phone signal | **1** |
-| Heat signals discarded by AI | **0** (both decoys sent to the rescuer to verify) |
-| Area searched | **100%** |
-| Full mission time (incl. trapped drone + recharge) | **110 s** |
-| Self-healing events handled | Low battery → recharge → rejoin; drone trapped → SOS + zone taken over |
-| Phone location error | **0.0 – 0.32 m** |
-| Unsafe direct routes caught and rerouted | **1** (radiation zone: dose cut 6.96 → 1.71) |
+| Victims found | **20 / 20** |
+| Partial-body victims found (hand, foot, head) | **7 / 7** |
+| Buried victims found only by phone signal | **3 / 3** |
+| Heat signals discarded by AI | **0**. All 3 decoys went to a rescuer, who dismissed them from the photo |
+| Victims reached by rescue teams | **20 / 20** |
+| Avg time from detection to a rescue team reaching the victim | **72 s** |
+| Area searched | **100%** in 104 s, despite 1 drone trapped and 1 recharging |
+| Unsafe direct routes caught and rerouted | **3** (radiation zone / collapsed building) |
+| Phone location error | **0.0 – 0.64 m** |
 
 **Swarm vs single drone** (same scene, no aftershock):
 
-| | 5-drone swarm | 1 drone |
+| | 6-drone swarm | 1 drone |
 |---|---|---|
-| Time to search the whole area | **84 s** | 254 s |
-| Time to find all visible victims | **51 s** | 171 s |
-| Time to first victim | **13 s** | 30 s |
+| Time to search the whole area | **98 s** | 298 s |
+| Time to find all visible victims | **64 s** | 203 s |
 
-→ The swarm finds every victim about **3.4× faster**.
+→ The swarm finds every victim about **3.2× faster**.
 
 ![Rescuer map](simulation/results/final_map.png)
 
 🎬 Simulation recording: [`simulation/results/halo_demo.mp4`](simulation/results/halo_demo.mp4)
+
+## 🖥️ Rescuer dashboard
+
+A live web dashboard for the rescue team. Everything is stored locally, with no cloud needed:
+
+- **Map** (street / satellite / schematic) with the search area, buildings, radiation, unstable structures and the no-signal zone
+- **🔥 Thermal red zones** wherever a drone senses heat, marked *"AI checking…"* until the photo is analysed, then the AI verdict (person / body part / not a person)
+- **Victim list sorted by priority** with the drone's **thermal image + photo**, AI confidence, and which team is on the way
+- **Alerts**: drone SOS, heat signals being checked, low-confidence photos for a human to verify
+- **Drone cards** (battery, state, online / mesh relay / offline-autonomous) and **rescue team** status
+- **Safe routes** (green) vs unsafe direct routes (red dashed), with a full event feed and **mission replay**
+
+```bash
+python simulation/run_mission.py --gui     # terminal 1
+python dashboard/serve.py                  # terminal 2 → http://localhost:8000/dashboard/
+python dashboard/serve.py --replay         # replay the last mission
+```
 
 ## 🔧 From simulation to reality
 

@@ -18,11 +18,12 @@ def m2px(xy):
 
 
 def render_3d(client, t):
-    yaw = 35 + 8 * np.sin(t / 25.0)
-    view = p.computeViewMatrixFromYawPitchRoll(cameraTargetPosition=[5.0, 6.0, 0.0], distance=13.5,
-                                               yaw=yaw, pitch=-52, roll=0, upAxisIndex=2, physicsClientId=client)
+    yaw = 25 + 40 * np.sin(t / 60.0)
+    view = p.computeViewMatrixFromYawPitchRoll(cameraTargetPosition=[5.4, 6.0, 0.0], distance=12.5,
+                                               yaw=yaw, pitch=-48, roll=0, upAxisIndex=2, physicsClientId=client)
     proj = p.computeProjectionMatrixFOV(fov=60, aspect=W3 / H, nearVal=0.1, farVal=50, physicsClientId=client)
-    img = p.getCameraImage(W3, H, view, proj, renderer=p.ER_TINY_RENDERER, physicsClientId=client)
+    img = p.getCameraImage(W3, H, view, proj, renderer=p.ER_TINY_RENDERER, shadow=1, lightDirection=[-3, -2, 6],
+                           lightAmbientCoeff=0.55, lightDiffuseCoeff=0.6, lightSpecularCoeff=0.1, physicsClientId=client)
     rgb = np.reshape(np.array(img[2], dtype=np.uint8), (H, W3, 4))[:, :, :3]
     return cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
 
@@ -124,13 +125,13 @@ def render_map(sim, base):
     cv2.rectangle(img, (0, y0 - 8), (WM, H), (20, 20, 20), -1)
     for k, d in enumerate(sim.drones):
         r, g, b = C.DRONE_COLORS[d.id % len(C.DRONE_COLORS)]
-        x = 8 + k * 142
-        cv2.putText(img, f"D{d.id} {d.state[:9]}", (x, y0 + 10), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (b, g, r), 1, cv2.LINE_AA)
-        bw = int(110 * d.battery / 100)
-        cv2.rectangle(img, (x, y0 + 16), (x + 110, y0 + 24), (80, 80, 80), 1)
+        x = 6 + k * 119
+        cv2.putText(img, f"D{d.id} {d.state[:10]}", (x, y0 + 10), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (b, g, r), 1, cv2.LINE_AA)
+        bw = int(100 * d.battery / 100)
+        cv2.rectangle(img, (x, y0 + 16), (x + 100, y0 + 24), (80, 80, 80), 1)
         bc = (80, 200, 80) if d.battery > 40 else (0, 170, 255) if d.battery > 20 else (0, 0, 255)
         cv2.rectangle(img, (x, y0 + 16), (x + bw, y0 + 24), bc, -1)
-        net = "ONLINE" if d.online else "OFFLINE (autonomous)"
+        net = "ONLINE" if d.online else "OFFLINE-AUTO"
         if d.online and d.hops > 1:
             net = f"MESH x{d.hops - 1}"
         cv2.putText(img, net, (x, y0 + 38), cv2.FONT_HERSHEY_SIMPLEX, 0.36, (200, 200, 200), 1, cv2.LINE_AA)

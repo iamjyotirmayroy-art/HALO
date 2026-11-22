@@ -21,6 +21,8 @@ from planning import inflate, rescuer_route
 from agents import DroneAgent, CommandAI, SEARCH, INVESTIGATE, RETURN, CHARGING, TRAPPED, DONE, IDLE
 import perception as P
 import render as R
+from rescue import Dispatcher
+import dashboard_export as DX
 
 
 class Mission:
@@ -32,6 +34,7 @@ class Mission:
         self.t = 0.0
         self.events, self.sos, self.links, self.claimed = [], [], [], set()
         self.routes, self.phone_victims = {}, {}
+        self.heat_zones = {}
         self.zone_version = 0
         self.video = video
 
@@ -51,7 +54,7 @@ class Mission:
         self.markers = []
         for i in range(n_drones):
             col = [c / 255 for c in C.DRONE_COLORS[i % len(C.DRONE_COLORS)]] + [1]
-            vis = p.createVisualShape(p.GEOM_SPHERE, radius=0.13, rgbaColor=col, physicsClientId=self.client)
+            vis = p.createVisualShape(p.GEOM_SPHERE, radius=0.16, rgbaColor=col, physicsClientId=self.client)
             self.markers.append(p.createMultiBody(0, -1, vis, [0, 0, -5], physicsClientId=self.client))
         self.n_humans = sum(s.is_human for s in self.world.sources)
 
@@ -59,6 +62,8 @@ class Mission:
         batt = C.START_BATTERY if n_drones == len(C.START_BATTERY) else [100] * n_drones
         self.drones = [DroneAgent(i, pads[i], batt[i]) for i in range(n_drones)]
         self.command = CommandAI()
+        self.dispatch = Dispatcher(self)
+        self.exporter = DX.Exporter(self)
 
         self.fly_blocked = inflate(self.world.tall, 1)
         self.free_cells = [(i, j) for i in range(C.N) for j in range(C.N) if not self.world.tall[i, j]]
@@ -68,6 +73,9 @@ class Mission:
         self.GX, self.GY = np.meshgrid(g, g, indexing="ij")
         self.gui = gui
         self.labels = {}
+        self.rings, self.rescued_marked = {}, set()
+        self.search_done = False
+        self.phones_reported = set()
 
     # ---------------- helpers used by agents ----------------
     def event(self, msg, lvl="info"):
@@ -172,6 +180,9 @@ class Mission:
                         for pid, rssi in P.phone_rssi(self.world, d.xy, self.rng):
                             d.rssi_log.setdefault(pid, []).append((d.xy.copy(), rssi))
                     d.path.append(d.xy.copy())
+                if step % (slow_every * 20) == 0:
+                    self.phone_check()
+                self.exporter.tick()
             # think + battery
             for d in self.drones:
                 d.think(self, dt)
@@ -206,31 +217,34 @@ class Mission:
                 action[i] = rpm
             self.obs, _, _, _, _ = self.env.step(action)
             self.t += dt; step += 1
+            self.dispatch.update(self, dt)
 
             if self.gui:
                 self.gui_labels()
-                for d, mk in zip(self.drones, self.markers):
-                    p.resetBasePositionAndOrientation(mk, [d.pos[0], d.pos[1], d.pos[2] + 0.12], [0, 0, 0, 1],
-                                                      physicsClientId=self.client)
+                if step % 4 == 0:
+                    self.sync_3d()
                 time.sleep(max(0, dt - (time.time() - t_wall))); t_wall = time.time()
             if writer is not None and self.t >= frame_t:
-                for d, mk in zip(self.drones, self.markers):
-                    p.resetBasePositionAndOrientation(mk, [d.pos[0], d.pos[1], d.pos[2] + 0.12], [0, 0, 0, 1],
-                                                      physicsClientId=self.client)
-                frame_t += C.FRAME_DT
+                self.sync_3d()
+                frame_t += C.FRAME_DT if not self.search_done else C.FRAME_DT * 3   # fast-forward rescue phase
                 writer.write(R.compose(R.render_3d(self.client, self.t), R.render_map(self, base), self.t))
 
             no_work = not self.command.remaining_work(self)
-            if finished_at is None and all(d.state in (DONE, TRAPPED) or (d.state == CHARGING and no_work)
-                                           for d in self.drones):
+            drones_done = all(d.state in (DONE, TRAPPED) or (d.state == CHARGING and no_work) for d in self.drones)
+            if drones_done and not self.search_done:
+                self.search_done = True
+                self.event("All drones home. Search complete - rescue teams finishing", "ok")
+                self.phone_check(final=True)
+            if finished_at is None and self.search_done and not self.dispatch.busy():
                 finished_at = self.t
-                self.event("All drones home. Search complete", "ok")
+                self.event("Mission complete: every victim reached by a rescue team", "ok")
                 self.post_mission()
-                end_hold = self.t + 4.0
+                end_hold = self.t + 3.0
             if finished_at is not None and self.t >= end_hold:
                 break
         if finished_at is None:
             self.event("Time limit reached", "warn"); self.post_mission(); finished_at = self.t
+        self.exporter.tick(force=True, final=True)
         if writer is not None:
             for _ in range(30):   # hold final frame 2 s
                 writer.write(R.compose(R.render_3d(self.client, self.t), R.render_map(self, base), self.t))
@@ -240,6 +254,57 @@ class Mission:
         cv2.imwrite(os.path.join(self.out, "final_map.png"), R.render_map(self, base))
         self.env.close()
         return self.report(finished_at)
+
+    def sync_3d(self):
+        for d, mk in zip(self.drones, self.markers):
+            p.resetBasePositionAndOrientation(mk, [d.pos[0], d.pos[1], d.pos[2] + 0.12], [0, 0, 0, 1],
+                                              physicsClientId=self.client)
+        for t in self.dispatch.teams:
+            t.sync_3d()
+        for vid, v in self.command.victims.items():
+            if vid not in self.rings:
+                col = [0.15, 0.95, 0.3, 1] if v["confidence"] >= 0.5 or v.get("source") == "phone" else [1, 0.8, 0, 1]
+                vis = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.3, 0.3, 0.006], rgbaColor=col,
+                                          physicsClientId=self.client)
+                self.rings[vid] = p.createMultiBody(0, -1, vis, [v["pos"][0], v["pos"][1], 0.014],
+                                                    physicsClientId=self.client)
+            if v.get("reached_t") and vid not in self.rescued_marked:
+                self.rescued_marked.add(vid)
+                p.changeVisualShape(self.rings[vid], -1, rgbaColor=[0.1, 0.5, 1.0, 1], physicsClientId=self.client)
+            if v["status"].startswith("DISMISSED") and vid not in self.rescued_marked:
+                self.rescued_marked.add(vid)
+                p.changeVisualShape(self.rings[vid], -1, rgbaColor=[0.4, 0.4, 0.4, 1], physicsClientId=self.client)
+
+    def phone_check(self, final=False):
+        """Pool all drones' phone readings. A phone with no heat/visual match in an already-searched
+        spot = buried victim."""
+        pooled = {}
+        for d in self.drones:
+            for pid, s in d.rssi_log.items():
+                pooled.setdefault(pid, []).extend(s)
+        thermal = [np.array(v["pos"]) for v in self.command.victims.values() if v.get("source") != "phone"]
+        for pid, samples in pooled.items():
+            if pid in self.phones_reported:
+                continue
+            est, rms = P.locate_phone(samples)
+            if est is None:
+                continue
+            truth = next(s for s in self.world.sources if s.id == pid)
+            self.phone_victims[pid] = dict(est=est.round(2).tolist(),
+                                           error_m=round(float(np.linalg.norm(est - truth.pos)), 2),
+                                           samples=len(samples))
+            near = [np.linalg.norm(est - q) for q in thermal]
+            if near and min(near) <= 1.5:
+                self.phones_reported.add(pid)     # phone belongs to a victim already found
+                continue
+            if not (final or self.covered_around(est, 1.5)):
+                continue                          # area not fully searched yet - wait
+            self.phones_reported.add(pid)
+            self.command.receive(self, dict(
+                type="victim", id=pid, pos=est.round(2).tolist(), source="phone", trapped=True,
+                label="phone signal only - likely BURIED (no thermal/visual)", confidence=0.6,
+                status="LIKELY VICTIM - phone signal", measured_temp=None, is_human=True, kind="buried",
+                t=round(self.t, 1), drone=None, photo=None))
 
     def gui_labels(self):
         for d in self.drones:
@@ -254,36 +319,11 @@ class Mission:
 
     # ---------------- after the search ----------------
     def post_mission(self):
-        # phone-signal locating (pool every drone's readings)
-        pooled = {}
-        for d in self.drones:
-            for pid, s in d.rssi_log.items():
-                pooled.setdefault(pid, []).extend(s)
-        thermal = [np.array(v["pos"]) for v in self.command.victims.values()]
-        for pid, samples in pooled.items():
-            est, rms = P.locate_phone(samples)
-            if est is None:
-                continue
-            truth = next(s for s in self.world.sources if s.id == pid)
-            err = float(np.linalg.norm(est - truth.pos))
-            self.phone_victims[pid] = dict(est=est.round(2).tolist(), error_m=round(err, 2), samples=len(samples))
-            near = [np.linalg.norm(est - q) for q in thermal]
-            if not near or min(near) > 1.5:
-                vid = f"{pid}"
-                rep = dict(type="victim", id=vid, pos=est.round(2).tolist(), source="phone", trapped=True,
-                           label="phone signal only - likely BURIED (no thermal/visual)", confidence=0.6,
-                           status="LIKELY VICTIM - please verify", measured_temp=None, is_human=True,
-                           kind="buried", t=round(self.t, 1), drone=None, photo=None)
-                self.command.receive(self, rep)
-        # safe rescuer routes to every reported human-like signal
         for vid, v in self.command.victims.items():
-            r = rescuer_route(self.world, np.array(v["pos"]))
-            self.routes[vid] = r
-            v["route"] = {k: r[k] for k in ("status", "direct", "safe", "note")}
-            if r["direct_unsafe"]:
-                self.event(f"Route to {vid}: direct path unsafe -> rerouted "
-                           f"({r['direct']['length_m']} m -> {r['safe']['length_m']} m, "
-                           f"dose {r['direct']['dose']} -> {r['safe']['dose']})", "ok")
+            if vid not in self.routes:
+                r = rescuer_route(self.world, np.array(v["pos"]))
+                self.routes[vid] = r
+                v.setdefault("route", {k: r[k] for k in ("status", "direct", "safe", "note")})
 
     def report(self, finished_at):
         V = self.command.victims
@@ -303,7 +343,12 @@ class Mission:
             time_first_victim_s=min((v["t"] for v in humans if v["source"] != "phone"), default=None),
             time_all_thermal_victims_s=max((v["t"] for v in humans if v["source"] != "phone"), default=None),
             phone_location_error_m={k: v["error_m"] for k, v in self.phone_victims.items()},
-            rerouted_routes=sum(1 for r in self.routes.values() if r["direct_unsafe"]),
+            rerouted_routes=sum(1 for vid, r in self.routes.items() if r["direct_unsafe"] and V[vid]["is_human"]),
+            rescue_teams=len(self.dispatch.teams),
+            victims_reached_by_rescuers=sum(1 for v in humans if v.get("reached_t")),
+            mean_detection_to_rescuer_s=round(float(np.mean([v["response_s"] for v in humans if v.get("response_s")])), 1)
+                if any(v.get("response_s") for v in humans) else None,
+            false_alarms_dismissed_by_rescuer=sum(1 for v in decoys if v["status"].startswith("DISMISSED")),
             sos_events=self.sos,
             total_flight_distance_m=round(sum(d.distance for d in self.drones), 1),
             victims=sorted(V.values(), key=lambda v: -v["priority"]),
@@ -330,6 +375,7 @@ if __name__ == "__main__":
     for k in ["drones", "mission_time_s", "area_searched_pct", "victims_found", "victims_total",
               "found_by_thermal_camera", "found_by_phone_signal_only", "partial_body_victims_found",
               "heat_signals_discarded", "decoys_sent_for_verification", "time_first_victim_s",
-              "time_all_thermal_victims_s", "rerouted_routes", "phone_location_error_m"]:
+              "time_all_thermal_victims_s", "rerouted_routes", "rescue_teams", "victims_reached_by_rescuers",
+              "mean_detection_to_rescuer_s", "false_alarms_dismissed_by_rescuer", "phone_location_error_m"]:
         print(f"{k:32s} {r[k]}")
     print(f"{'sos_events':32s} {len(r['sos_events'])}")

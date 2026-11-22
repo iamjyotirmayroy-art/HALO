@@ -93,7 +93,8 @@ class DroneAgent:
                 self.inv = dict(source=s, temp=temp, t0=sim.t, phase="dive")
                 self.state = INVESTIGATE
                 self.route = []
-                self.report(sim, dict(type="heat", text=f"Drone {self.id}: unusual heat signal "
+                self.report(sim, dict(type="heat", id=s.id, pos=s.pos.round(2).tolist(), temp=round(temp, 1),
+                                      text=f"Drone {self.id}: unusual heat signal "
                                       f"{temp:.1f} C at ({s.pos[0]:.1f}, {s.pos[1]:.1f}) - taking photo"))
                 return
             if not self.route:
@@ -126,11 +127,13 @@ class DroneAgent:
             elif inv["phase"] == "photo":
                 if sim.t - inv["t_photo"] > 0.5:
                     path = f"{sim.out}/photos/{s.id}_drone{self.id}.png"
-                    P.take_photo(sim.client, self.pos - np.array([0.0, 0.0, 0.04]), s.pos, path)
+                    rgb = P.take_photo(sim.client, self.pos - np.array([0.0, 0.0, 0.04]), s.pos, path)
+                    tpath = path.replace(".png", "_thermal.png")
+                    P.thermal_image(rgb, inv["temp"], s.kind, tpath, sim.rng)
                     res = P.ai_check(s, inv["temp"], sim.rng)
                     s.reported = True
                     trapped = s.kind in ("hand", "foot", "head") or w.inside_weak(s.pos)
-                    rep = dict(type="victim", id=s.id, pos=s.pos.round(2).tolist(), photo=path,
+                    rep = dict(type="victim", id=s.id, pos=s.pos.round(2).tolist(), photo=path, thermal=tpath,
                                drone=self.id, t=round(sim.t, 1), trapped=trapped, source="thermal+camera",
                                is_human=s.is_human, kind=s.kind,
                                **res)
@@ -241,14 +244,17 @@ class CommandAI:
             msg["priority"] = P.priority_score(msg, sim.world)
             self.victims[msg["id"]] = msg
             sim.event(f"PHONE SIGNAL with no heat/visual at ({msg['pos'][0]:.1f}, {msg['pos'][1]:.1f}): "
-                      f"likely BURIED victim - please verify, priority {msg['priority']}", "verify")
+                      f"likely BURIED victim, priority {msg['priority']}", "verify")
+            sim.dispatch.new_report(sim, msg)
         elif msg["type"] == "victim":
             msg["priority"] = P.priority_score(msg, sim.world)
             self.victims[msg["id"]] = msg
             lvl = "victim" if msg["status"].startswith("CONFIRMED") else "verify"
             sim.event(f"{msg['status']}: {msg['label']} ({msg['confidence']*100:.0f}% AI conf.) at "
                       f"({msg['pos'][0]:.1f}, {msg['pos'][1]:.1f}) - photo sent, priority {msg['priority']}", lvl)
+            sim.dispatch.new_report(sim, msg)
         elif msg["type"] == "sos":
             sim.event(msg["text"], "alarm")
         elif msg["type"] == "heat":
+            sim.heat_zones[msg["id"]] = dict(pos=msg["pos"], temp=msg["temp"], t=round(sim.t, 1), drone=msg["drone"])
             sim.event(msg["text"], "heat")

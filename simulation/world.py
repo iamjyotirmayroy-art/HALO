@@ -50,12 +50,21 @@ class World:
         self.weak = np.zeros((n, n), bool)
         self.sealed = np.zeros((n, n), bool)
 
-        p.changeVisualShape(0, -1, rgbaColor=[0.55, 0.53, 0.48, 1], physicsClientId=cl)  # dusty ground
+        p.changeVisualShape(0, -1, textureUniqueId=-1, rgbaColor=[0.47, 0.45, 0.41, 1], physicsClientId=cl)  # dusty ground
+        # roads (asphalt strips) and a lighter search-area pad so the block reads as a city street grid
+        self._box((-0.3, -0.3, C.AREA + 0.3, C.AREA + 0.3), 0.004, [0.56, 0.54, 0.49, 1])
+        for r in [(3.4, -0.3, 4.4, C.AREA + 0.3), (7.0, -0.3, 8.0, C.AREA + 0.3),
+                  (-0.3, 3.6, C.AREA + 0.3, 4.6), (-0.3, 7.0, C.AREA + 0.3, 7.9), (-2.6, 5.0, 0.0, 7.0)]:
+            self._box(r, 0.008, [0.30, 0.30, 0.32, 1])
 
         # intact tall buildings (x0, y0, x1, y1, height)
         for (x0, y0, x1, y1, h) in [(1.0, 8.0, 3.0, 11.0, 2.2), (8.0, 1.0, 11.0, 3.0, 2.0),
                                     (5.0, 5.0, 6.5, 6.5, 1.9), (8.5, 8.0, 9.5, 9.5, 2.4)]:
-            self._box((x0, y0, x1, y1), h, [0.62, 0.64, 0.68, 1])
+            self._box((x0, y0, x1, y1), h, [0.78, 0.74, 0.66, 1])
+            self._box((x0 + 0.08, y0 + 0.08, x1 - 0.08, y1 - 0.08), h + 0.06, [0.55, 0.52, 0.48, 1])  # roof parapet
+            for k in range(1, int(h / 0.45) + 1):          # window bands
+                z = k * 0.45 - 0.12
+                self._band((x0, y0, x1, y1), z, [0.25, 0.35, 0.45, 1])
             self._mark(self.tall, (x0, y0, x1, y1))
 
         # damaged building: low broken walls, open roof, unstable
@@ -91,20 +100,26 @@ class World:
             self._box((pad[0] - 0.2, pad[1] - 0.2, pad[0] + 0.2, pad[1] + 0.2), 0.02, [0.1, 0.6, 0.9, 1])
         self._box((C.BASE[0] - 1.9, C.BASE[1] - 2.0, C.BASE[0] - 1.5, C.BASE[1] + 2.0), 0.5, [0.9, 0.2, 0.2, 1])  # rescue truck
 
-        # ---- heat sources: 8 people (some only partly visible) + 2 decoys ----
+        # ---- heat sources: 20 people (some only partly visible, 3 fully buried) + 3 decoys ----
         S = HeatSource
-        self.sources = [
-            S("V1", "person", np.array([2.5, 2.2]), 36.4, True, has_phone=True),
-            S("V2", "hand", np.array([5.9, 2.6]), 33.1, True),
-            S("V3", "person", np.array([9.6, 5.0]), 35.2, True, has_phone=True),
-            S("V4", "foot", np.array([3.4, 6.6]), 32.0, True),
-            S("V5", "person", np.array([5.3, 9.8]), 34.8, True, has_phone=True),
-            S("V6", "head", np.array([11.0, 11.1]), 34.0, True),
-            S("V7", "person", np.array([7.4, 11.3]), 36.0, True, has_phone=True),
-            S("V8", "buried", np.array([1.7, 4.9]), 35.0, True, has_phone=True, visible=False),
-            S("D1", "fire", np.array([7.0, 7.6]), 180.0, False),
-            S("D2", "animal", np.array([3.2, 3.6]), 38.5, False),
+        P_, H_, F_, HD, B_ = "person", "hand", "foot", "head", "buried"
+        spec = [  # id, kind, x, y, temp, phone
+            ("V1", P_, 2.5, 2.2, 36.4, True), ("V2", H_, 5.9, 2.6, 33.1, False),
+            ("V3", P_, 9.6, 5.0, 35.2, True), ("V4", F_, 3.4, 6.6, 32.0, False),
+            ("V5", P_, 5.3, 9.8, 34.8, True), ("V6", HD, 11.0, 11.1, 34.0, False),
+            ("V7", P_, 7.4, 11.3, 36.0, True), ("V8", B_, 1.7, 4.9, 35.0, True),
+            ("V9", P_, 0.8, 0.8, 35.9, False), ("V10", H_, 4.2, 0.9, 32.6, False),
+            ("V11", P_, 7.0, 0.6, 36.2, True), ("V12", HD, 11.6, 0.5, 33.5, False),
+            ("V13", P_, 11.4, 4.2, 35.5, False), ("V14", B_, 7.0, 4.4, 34.9, True),
+            ("V15", F_, 0.6, 7.2, 31.8, False), ("V16", P_, 3.6, 11.5, 36.1, False),
+            ("V17", H_, 7.6, 9.2, 33.0, False), ("V18", P_, 10.4, 7.2, 35.7, True),
+            ("V19", B_, 0.5, 11.5, 35.2, True), ("V20", P_, 4.6, 4.2, 36.3, False),
         ]
+        self.sources = [S(i, k, np.array([x, y]), t, True, has_phone=ph, visible=(k != B_))
+                        for i, k, x, y, t, ph in spec]
+        self.sources += [S("H1", "fire", np.array([7.0, 7.6]), 180.0, False),
+                         S("H2", "animal", np.array([3.2, 3.6]), 38.5, False),
+                         S("H3", "fire", np.array([9.8, 11.6]), 95.0, False)]
         for s in self.sources:
             s.body_id = self._spawn_source(s)
 
@@ -137,6 +152,12 @@ class World:
         vis = p.createVisualShape(p.GEOM_BOX, halfExtents=he, rgbaColor=rgba, physicsClientId=self.client)
         return p.createMultiBody(0, col, vis, [(x0 + x1) / 2, (y0 + y1) / 2, h / 2],
                                  p.getQuaternionFromEuler([0, 0, yaw]), physicsClientId=self.client)
+
+    def _band(self, r, z, rgba):
+        x0, y0, x1, y1 = r
+        he = [(x1 - x0) / 2 + 0.01, (y1 - y0) / 2 + 0.01, 0.06]
+        vis = p.createVisualShape(p.GEOM_BOX, halfExtents=he, rgbaColor=rgba, physicsClientId=self.client)
+        p.createMultiBody(0, -1, vis, [(x0 + x1) / 2, (y0 + y1) / 2, z], physicsClientId=self.client)
 
     def _sphere(self, xy, r, rgba, z=0.0):
         vis = p.createVisualShape(p.GEOM_SPHERE, radius=r, rgbaColor=rgba, physicsClientId=self.client)

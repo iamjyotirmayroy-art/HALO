@@ -44,6 +44,22 @@ def take_photo(client, cam_xyz, target_xy, path, size=320):
     return rgb
 
 
+def thermal_image(rgb, temp_c, kind, path, rng):
+    """False-colour thermal frame matching the photo: cool scene, hot blob where the heat source is."""
+    h, w = rgb.shape[:2]
+    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255.0
+    base = 0.18 + 0.22 * gray                          # ambient rubble ~ 18-24 C
+    Y, X = np.mgrid[0:h, 0:w]
+    sx, sy = {"person": (70, 26), "hand": (16, 16), "foot": (24, 14), "head": (18, 18),
+              "fire": (34, 34), "animal": (40, 18)}.get(kind, (24, 24))
+    heat = np.clip((temp_c - 20) / 25.0, 0.3, 1.0)
+    blob = heat * np.exp(-(((X - w / 2) / sx) ** 2 + ((Y - h / 2) / sy) ** 2))
+    img = np.clip(base + blob + rng.normal(0, 0.015, base.shape), 0, 1)
+    out = cv2.applyColorMap((img * 255).astype(np.uint8), cv2.COLORMAP_INFERNO)
+    cv2.putText(out, f"{temp_c:.1f} C", (8, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+    cv2.imwrite(path, out)
+
+
 # ---------------- AI victim check ----------------
 LABELS = {"person": "person", "hand": "body part: hand/arm", "foot": "body part: foot/leg",
           "head": "body part: head", "fire": "hot debris / fire", "animal": "animal"}
