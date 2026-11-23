@@ -71,6 +71,8 @@ class Mission:
         self.exporter = DX.Exporter(self)
         self.link = RescuerLink(self)
         self.cams = CameraPool(n_drones, os.path.join(out, "cams"))
+        if realtime:
+            self.cams.start()                      # dashboard mission: cameras ready before anyone opens them
         self.cam_meta, self.snapshots = {}, []
         corners = np.vstack([[0, 0], [C.AREA, C.AREA], pads])
         self.bounds = (np.r_[corners.min(0) - 0.5, 0.3], np.r_[corners.max(0) + 0.5, 2.5])   # geofence

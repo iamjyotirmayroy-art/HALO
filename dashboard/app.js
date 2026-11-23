@@ -179,8 +179,6 @@ function render(st) {
   $("feed").innerHTML = [...st.events].reverse().map(e => `<div class="lvl-${e.lvl}">[${e.t.toFixed(1).padStart(6)}s] ${esc(e.msg)}</div>`).join("");
 
   if (mode === "live") liveFeedback(st);
-  if (!$("camwall").hidden) renderWall(st);
-  if (pilot) renderPilot(st);
   sawRunning ||= !st.final;
   if (st.final && sawRunning && !summaryShown) { summaryShown = true; showSummary(st); }   // only after watching it run
 }
@@ -329,7 +327,16 @@ $("vfilter").onclick = e => {
 };
 
 // ---------------- 📹 camera wall (watch only: never changes what the drones do) ----------------
-const camSrc = (id, m) => `/api/cam/${id}${m === "thermal" ? "?mode=thermal" : ""}`;
+// frames are polled as plain JPEGs (~4 fps): long-lived MJPEG streams would use up the browser's 6 connections per host
+const camURL = (id, m) => `${DATA}cams/drone${id}${m === "thermal" ? "_thermal" : ""}.jpg?${Date.now()}`;
+setInterval(() => document.querySelectorAll("img[data-cam]").forEach(img => {
+  if (img.dataset.busy) return;
+  img.dataset.busy = 1;
+  const next = new Image();   // double-buffered: the tile keeps its last frame until the next one has loaded
+  next.onload = () => { if (img.dataset.cam) img.src = next.src; delete img.dataset.busy; };
+  next.onerror = () => delete img.dataset.busy;
+  next.src = camURL(img.dataset.cam, img.dataset.mode);
+}), 250);
 function wallIds() {
   return allOnline ? ST.drones.filter(d => d.online).map(d => d.id) : [...watch].sort((a, b) => a - b);
 }
@@ -359,7 +366,7 @@ function renderWall(st) {
   if (key !== wallKey) {   // (re)build tiles only when the selection changes; streams keep running
     wallKey = key;
     grid.className = "camgrid n" + (ids.length <= 1 ? 1 : ids.length === 2 ? 2 : ids.length <= 4 ? 4 : 6);
-    grid.innerHTML = ids.map(i => `<div class="tile" id="tile${i}"><img src="${camSrc(i, camMode[i])}" alt="drone ${i} camera">
+    grid.innerHTML = ids.map(i => `<div class="tile" id="tile${i}"><img data-cam="${i}" data-mode="${camMode[i] || "normal"}" alt="drone ${i} camera">
       <div class="hd"></div><div class="flag" hidden></div><div class="ft">
       <button data-act="mode" data-id="${i}">${camMode[i] === "thermal" ? "Normal" : "Thermal"}</button>
       <button data-act="snap" data-id="${i}">📸 Snapshot + AI check</button><button data-act="locate" data-id="${i}">📍 Show on map</button>
@@ -374,7 +381,7 @@ function renderWall(st) {
       ${cam && cam.people.length ? `<span class="badge ai">🤖 ${esc(cam.people.join(", "))}</span>` : ""}<span>🔋${d.battery.toFixed(0)}%</span><span class="vmeta">${signal(d)}</span>`;
     tile.classList.toggle("heat", !!(cam && cam.heat));
     const flag = tile.querySelector(".flag"), sos = d.state === "TRAPPED";
-    flag.hidden = d.online && !sos && !!cam;
+    flag.hidden = d.online && !sos && tile.querySelector("img").naturalWidth > 0;   // first frame arrived
     flag.className = "flag" + (sos ? " sos" : "");
     flag.textContent = sos ? "🆘 SOS · TRAPPED" : !d.online ? "NO SIGNAL" : "CONNECTING…";
   });
@@ -390,12 +397,12 @@ function startPilot(id) {
   pilot = { id, t0: Date.now(), manual: false, mode: "normal", lastInput: Date.now() };
   $("pilot").hidden = false; $("pilot-title").textContent = `🎮 Manual control · Drone ${id}`;
   $("pilot-title").style.color = color(id);
-  $("pilot-cam").src = camSrc(id, "normal"); $("pilot-mode").textContent = "Thermal";
+  Object.assign($("pilot-cam").dataset, { cam: id, mode: "normal" }); $("pilot-mode").textContent = "Thermal";
   pilotTimer = setInterval(pilotTick, 100);   // 10 Hz stick updates
 }
 function endPilot(msg) {
   clearInterval(pilotTimer); pilot = null; keys.clear();
-  $("pilot").hidden = true; $("pilot-cam").src = "";
+  $("pilot").hidden = true; delete $("pilot-cam").dataset.cam; $("pilot-cam").removeAttribute("src");
   if (msg) toast(msg, 5000);
 }
 function axis(v) { return Math.abs(v) < .15 ? 0 : v; }
@@ -426,7 +433,7 @@ $("pilot-release").onclick = () => { if (pilot) api("command", { type: "release"
 $("pilot-snap").onclick = () => pilot && api("command", { type: "snapshot", drone: pilot.id });
 $("pilot-mode").onclick = () => {
   pilot.mode = pilot.mode === "thermal" ? "normal" : "thermal";
-  $("pilot-cam").src = camSrc(pilot.id, pilot.mode); $("pilot-mode").textContent = pilot.mode === "thermal" ? "Normal" : "Thermal";
+  $("pilot-cam").dataset.mode = pilot.mode; $("pilot-mode").textContent = pilot.mode === "thermal" ? "Normal" : "Thermal";
 };
 addEventListener("keydown", e => { if (pilot && !e.target.matches("input")) keys.add(e.key.toLowerCase()); });
 addEventListener("keyup", e => keys.delete(e.key.toLowerCase()));
@@ -547,6 +554,8 @@ async function pollLive() {
     if (!S || staticKey(S) !== staticKey(j.static)) { S = j.static; lastT = -1; drawStatic(); }
     if (!ST || j.state.t !== ST.t) progressAt = Date.now();
     render(j.state);
+    if (!$("camwall").hidden) renderWall(j.state);   // cameras and the pilot panel refresh on every poll
+    if (pilot) renderPilot(j.state);
     setMode(j.state.final ? "MISSION COMPLETE" : Date.now() - progressAt > 5000 ? "⏸ SIMULATION NOT RUNNING" : "● LIVE", "live");
   } catch (e) { if (!$("mode").textContent.startsWith("🚀")) setMode(S ? "WAITING FOR SIMULATION…" : "NO MISSION · draw an area", "live"); }
   setTimeout(pollLive, 500);
@@ -588,5 +597,6 @@ $("tabs").onclick = e => {
   syncTabs();
 };
 
+addEventListener("pagehide", () => navigator.sendBeacon("/api/watch", JSON.stringify({ drones: [] })));   // stop rendering for a closed tab
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => { /* needs localhost or HTTPS */ });
 if (new URLSearchParams(location.search).get("mode") === "replay") startReplay().catch(() => pollLive()); else pollLive();

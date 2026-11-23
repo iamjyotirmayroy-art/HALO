@@ -50,14 +50,14 @@ def _worker(cfg, jobs, results):
 
 
 class CameraPool:
-    """Started on first use: missions nobody watches never spawn a worker."""
+    """Workers start with a dashboard mission (they take a few seconds to boot) or on first use."""
     def __init__(self, n_drones, out):
         self.cfg = dict(n=n_drones, out=out, poly=C.AREA_POLY, base=C.BASE.tolist())
         self.workers, self.jobs = [], []
         self.results = None
         os.makedirs(out, exist_ok=True)
 
-    def _start(self):
+    def start(self):
         ctx = mp.get_context("spawn")
         self.results = ctx.Queue()
         for _ in range(max(1, min(3, (os.cpu_count() or 2) - 2))):
@@ -70,7 +70,7 @@ class CameraPool:
     def render(self, sim, ids):
         """Ask the workers for new frames of drones `ids` (skipped by a worker still busy with the last ones)."""
         if not self.workers:
-            self._start()
+            self.start()
         poses = [(d.pos.tolist(), d.heading) for d in sim.drones]
         for k, q in enumerate(self.jobs):
             mine = [i for i in ids if i % len(self.jobs) == k]
