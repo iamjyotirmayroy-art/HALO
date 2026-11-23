@@ -92,10 +92,10 @@ From the PyBullet simulation: **6 drones**, **20 hidden victims** (7 only partly
 | Buried victims found only by phone signal | **3 / 3** |
 | Heat signals discarded by AI | **0**. All 3 decoys went to a rescuer, who dismissed them from the photo |
 | Victims reached by rescue teams | **20 / 20** |
-| Avg time from detection to a rescue team reaching the victim | **72 s** |
+| Avg time from detection to a rescue team reaching the victim | **70 s** |
 | Area searched | **100%** in 104 s, despite 1 drone trapped and 1 recharging |
 | Unsafe direct routes caught and rerouted | **3** (radiation zone / collapsed building) |
-| Phone location error | **0.0 – 0.64 m** |
+| Phone location error | **0.1 – 0.64 m** |
 
 **Swarm vs single drone** (same scene, no aftershock):
 
@@ -112,20 +112,46 @@ From the PyBullet simulation: **6 drones**, **20 hidden victims** (7 only partly
 
 ## 🖥️ Rescuer dashboard
 
-A live web dashboard for the rescue team. Everything is stored locally, with no cloud needed:
-
-- **Map** (street / satellite / schematic) with the search area, buildings, radiation, unstable structures and the no-signal zone
-- **🔥 Thermal red zones** wherever a drone senses heat, marked *"AI checking…"* until the photo is analysed, then the AI verdict (person / body part / not a person)
-- **Victim list sorted by priority** with the drone's **thermal image + photo**, AI confidence, and which team is on the way
-- **Alerts**: drone SOS, heat signals being checked, low-confidence photos for a human to verify
-- **Drone cards** (battery, state, online / mesh relay / offline-autonomous) and **rescue team** status
-- **Safe routes** (green) vs unsafe direct routes (red dashed), with a full event feed and **mission replay**
+A live web dashboard for the rescue team that also installs as a phone app. It runs and stores everything locally (`simulation/results/`), with no cloud and no API keys.
 
 ```bash
-python simulation/run_mission.py --gui     # terminal 1
-python dashboard/serve.py                  # terminal 2 → http://localhost:8000/dashboard/
-python dashboard/serve.py --replay         # replay the last mission
+python dashboard/serve.py            # opens http://localhost:8000/dashboard/ and prints the address for phones
+python dashboard/serve.py --replay   # replay the last mission
 ```
+
+**Search for humans in 5 clicks:** search a place (e.g. *Mumbai*) → **📍 Set rescue base** → **🔍 Search for humans** → draw the disaster area (rectangle or polygon), pick the number of drones and rescue teams → **🚀 Launch**. The server fits the simulation onto that area and starts it. Then watch it live:
+
+| | What you get |
+|---|---|
+| 🗺️ **Real map + place search** | OpenStreetMap streets and Esri satellite layers, opens on India, zoom anywhere. Place search uses the free OpenStreetMap Nominatim geocoder |
+| 🧩 **Live mission on the map** | Zones split in each drone's colour, filling in as they're searched · each drone's **flight path draws as it flies** · **🔥 thermal red zones** with *"🤖 AI checking…"* → AI verdict · **green safe rescuer routes** from the base to each victim (unsafe direct routes as red dashed lines, with the reason) · rescue teams walking their routes · a **mission summary card** at the end |
+| 🧍 **Victims & AI verification** | List sorted by priority with thermal image, photo with the AI's boxes, confidence, temperature, status and team. Click one to **✔ Confirm person / ✖ Not a person** or **🚑 Send team**. Filters: not rescued yet / needs verification / buried (phone signal) |
+| 🛩 **Drones** | Battery, state, signal (online / mesh relay / offline-autonomous), SOS. Click one for details, trail on/off and **↩ Recall to base** |
+| 📹 **Live camera wall** | Watch one, several or *All online* drones in an auto grid (1 / 2 / 2×2 / 3×2). Each tile shows name, state, battery and signal, has a **Normal / Thermal** toggle, AI boxes on people or body parts, and flashes red when it sees heat. Tile buttons: **📸 Snapshot + AI check**, **📍 Show on map**, **🎮 Take control**. Offline drones show *NO SIGNAL* with their last frame; a trapped drone shows a red SOS tile. Watching never changes what a drone does. Cameras are rendered only for drones being watched (320×240, up to 4 fps), in background processes, so watching never slows the mission |
+| 🎮 **Manual drone takeover** | Fly a drone with the keyboard (**W/A/S/D** move, **Q/E** rotate, **R/F** up/down), the on-screen joysticks or a gamepad, with its live camera. The rest of the swarm re-splits its zone. **Anti-crash safety stays on:** your input is only a desired velocity, and obstacle avoidance, drone avoidance and the geofence still apply (*"⚠ Obstacle ahead"* shows when it steps in). The battery failsafe still forces a return home. **Release control**, or 2 s without input, hands it back to the AI and the swarm re-balances |
+| 🚨 **Alerts, layers, replay** | Banner + sound (mute toggle) for drone SOS, heat signals being checked, photos needing verification and unsafe routes. Layer toggles for thermal zones, trails, zones, safe routes, radio links and hazards. Event feed and **mission replay with a timeline scrubber** |
+| 📱 **Phone app (PWA)** | *Add to Home Screen* on Android and iPhone opens it full screen like an app. On a phone the map is full screen, panels become bottom tabs (Alerts, Drones, Victims, Teams, Cameras), the camera wall becomes a swipe carousel and the joysticks are touch-friendly. `serve.py` listens on the local network, so phones on the same Wi-Fi can open it |
+
+| Draw the area | Live mission | Victim check |
+|---|---|---|
+| ![Draw the area](docs/screenshots/1-draw-area.png) | ![Live mission](docs/screenshots/2-live-mission.png) | ![Victim verification](docs/screenshots/3-victim-verify.png) |
+| **Camera wall** | **Manual control** | **Phone app** |
+| ![Camera wall](docs/screenshots/4-camera-wall.png) | ![Manual control](docs/screenshots/5-manual-control.png) | ![Phone](docs/screenshots/6-phone.png) |
+
+<sub>Screenshots were taken offline, so the street and satellite map tiles are missing. They load normally with an internet connection.</sub>
+
+**Backend API** (`dashboard/serve.py`, Python standard library only): `GET /` dashboard · `POST /api/mission` · `POST /api/verify` · `POST /api/command` · `POST /api/control` · `POST /api/watch` · `GET /api/cam/<N>` (MJPEG stream, e.g. for VLC; the dashboard itself polls the JPEG frames so it never runs out of browser connections). Commands are written to `simulation/results/commands.json`, which the running simulation polls and acts on (drone commands travel over the mesh, so an offline drone gets them when it reconnects).
+
+> Phones only allow a full app install (service worker) over HTTPS or on `localhost`. Over plain `http://<laptop-ip>:8000` you can still add it to the home screen. For the full install, serve with a certificate: `python dashboard/serve.py --cert cert.pem --key key.pem`.
+
+## ✅ Tests
+
+```bash
+pip install -r simulation/requirements.txt
+python -m pytest tests          # area fitting, command queue, anti-crash safety filter, area mask, base placement
+```
+
+The anti-crash tests fly a simulated drone at full speed into a wall and at another drone, and check that it always stops at the safety margin (0.4 m to obstacles, 0.5 m to drones) and stays inside the altitude geofence. The dashboard was tested end to end in a headless browser: search a place → set base → draw the area → launch → camera wall and snapshot → manual flight and release → photo verification → mission summary.
 
 ## 🔧 From simulation to reality
 

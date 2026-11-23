@@ -12,7 +12,10 @@ python run_mission.py --gui          # watch live in the 3D window (good for scr
 python run_mission.py                # headless: writes results/halo_demo.mp4 + report
 python run_mission.py --no-video     # fastest, metrics only
 python run_mission.py --drones 1 --no-aftershock --max-time 900 --no-video   # single-drone baseline
+python run_mission.py --area area.json --live --teams 3   # what the dashboard runs for a rescuer-drawn area
 ```
+
+`--area` takes the area the rescuer drew (polygon + base in sim metres, map origin and scale, written by `dashboard/serve.py`). The 12 m scene is fitted onto it, and only cells and victims inside the drawn polygon count. `--live` runs in real time, waits up to 45 s for the rescuer to verify uncertain photos, and accepts commands and manual control from the dashboard.
 
 Outputs go to `results/`:
 
@@ -23,6 +26,8 @@ Outputs go to `results/`:
 | `photos/` | Photo taken by the drone for every heat signal (sent to the rescuer to verify) |
 | `mission_report.json` | Metrics, every victim with AI result, priority and route, full timeline |
 | `live.json` / `replay.json` | Local data feed for the rescuer dashboard (live + full replay) |
+| `cams/`, `snapshots/` | Live camera frames (only for drones being watched) and rescuer snapshots, during dashboard missions |
+| `commands.json` | Rescuer commands from the dashboard, polled by the running mission |
 
 ## What happens in the mission
 
@@ -39,10 +44,11 @@ Outputs go to `results/`:
 ## Rescuer dashboard
 
 ```bash
-python run_mission.py --gui          # terminal 1: run the mission
-python ../dashboard/serve.py         # terminal 2: opens http://localhost:8000/dashboard/ (live)
+python ../dashboard/serve.py         # draw an area on the map and press "Search for humans": it starts the mission
 python ../dashboard/serve.py --replay   # replay the last mission any time
 ```
+
+A mission started by hand (`python run_mission.py --gui`) also shows up live on the dashboard.
 
 Everything is stored locally in `results/`. No cloud or database is needed for the demo.
 
@@ -53,8 +59,11 @@ Everything is stored locally in `results/`. No cloud or database is needed for t
 | `run_mission.py` | Mission loop: physics, control, comms, events, video, report |
 | `agents.py` | `DroneAgent` (per-drone autonomous AI) and `CommandAI` (central coordinator) |
 | `planning.py` | Zone splitting, coverage paths, A* flight paths, rescuer safe routes |
-| `perception.py` | Thermal scan, camera photo, AI victim check, phone RSSI locating, priority score |
-| `rescue.py` | Ground rescue teams + dispatcher (priority queue, photo verification) |
+| `perception.py` | Thermal scan, drone camera (photo, live view, segmentation-based thermal, AI boxes), AI victim check, phone RSSI locating, priority score |
+| `rescue.py` | Ground rescue teams + dispatcher (priority queue, rescuer verification, "send team") |
+| `rescuer_link.py` | Dashboard → swarm commands: verify, send team, recall, takeover/release, snapshot, camera watch list |
+| `cameras.py` | Live drone cameras rendered in background worker processes (only drones being watched), so watching never slows the mission |
+| `safety.py` | Anti-crash filter for rescuer-flown drones: rangefinder rays, obstacle + drone avoidance, geofence, speed limits |
 | `dashboard_export.py` | Writes live state + replay for the dashboard (local JSON files) |
 | `world.py` | Disaster scene in PyBullet + grid maps (buildings, rubble, radiation, unstable structure) |
 | `render.py` | 3D frames + live 2D rescuer map |
