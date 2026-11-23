@@ -1,5 +1,5 @@
 // HALO service worker: the app shell works offline; mission data and the API always come from the laptop.
-const CACHE = "halo-v1";
+const CACHE = "halo-v2";
 const SHELL = ["./", "index.html", "app.js", "style.css", "manifest.json", "icons/icon-192.png", "icons/icon-512.png",
   "vendor/leaflet/leaflet.js", "vendor/leaflet/leaflet.css"];
 self.addEventListener("install", e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())));

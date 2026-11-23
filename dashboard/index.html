@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>HALO Rescuer Dashboard</title>
-<meta name="theme-color" content="#0d1117">
+<title>HALO Command</title>
+<meta name="theme-color" content="#0a0e13">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,83 +17,144 @@
 <script src="vendor/leaflet/leaflet.js"></script>
 </head>
 <body>
-<header>
-  <div class="brand">HALO <small>Rescuer Dashboard</small></div>
-  <form id="search" class="search" autocomplete="off">
-    <input id="q" type="search" placeholder="Search a city, area or address" aria-label="Search a place">
-    <div id="results" class="results"></div>
-  </form>
-  <div class="kpis">
-    <div class="kpi"><b id="k-time">0.0 s</b><span>Mission time</span></div>
-    <div class="kpi"><b id="k-cov">0%</b><span>Area searched</span></div>
-    <div class="kpi"><b id="k-found">0 / 0</b><span>Victims found</span></div>
-    <div class="kpi"><b id="k-reached">0</b><span>Reached</span></div>
-    <div class="kpi"><b id="k-online">0 / 0</b><span>Drones online</span></div>
-  </div>
-  <div class="actions">
-    <button id="btn-base" title="Click the map to place the rescue base">📍<span class="t"> Set rescue base</span></button>
-    <button id="btn-mission" class="primary">🔍<span class="t"> Search for humans</span></button>
-    <button id="btn-cams">📹<span class="t"> Cameras</span></button>
-    <button id="btn-mute" title="Alert sound on/off">🔔</button>
-  </div>
-  <div class="mode">
-    <span id="mode" class="pill live">CONNECTING…</span>
-    <button id="btn-play" hidden>⏸</button>
-    <select id="speed" hidden><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option><option value="8">8×</option></select>
-    <input id="scrub" type="range" min="0" max="0" value="0" hidden aria-label="Replay timeline">
-    <button id="btn-replay">Replay</button>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><circle cx="12" cy="12" r="3.5"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+    <symbol id="i-video" viewBox="0 0 24 24"><rect x="2.5" y="6" width="13" height="12" rx="2"/><path d="M15.5 10.5 21.5 7v10l-6-3.5"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5"/><path d="M3.5 3.5v5h5M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></symbol>
+    <symbol id="i-bell-off" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 9.5-4.9M18 11v5l1.5 2H8"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0M3 3l18 18"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5 22 20.5H2z"/><path d="M12 10v4.5M12 17.5v.01"/></symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 21.5c3.9 0 6.5-2.8 6.5-6.5 0-3.6-2.4-5.6-3.6-9-1.7 1.6-2.6 3.3-2.7 5.1-1-.8-1.7-2-1.9-3.6C7.6 9.9 5.5 12 5.5 15c0 3.7 2.6 6.5 6.5 6.5z"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.8"/><path d="M4.5 20.5c1.3-3.7 4.1-5.6 7.5-5.6s6.2 1.9 7.5 5.6"/></symbol>
+    <symbol id="i-team" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.3"/><path d="M2.5 20c1-3.3 3.5-5 6.5-5s5.5 1.7 6.5 5"/><circle cx="16.5" cy="7.5" r="2.6"/><path d="M16 13.2c2.6 0 4.6 1.5 5.5 4.3"/></symbol>
+    <symbol id="i-drone" viewBox="0 0 24 24"><circle cx="5.5" cy="5.5" r="2.8"/><circle cx="18.5" cy="5.5" r="2.8"/><circle cx="5.5" cy="18.5" r="2.8"/><circle cx="18.5" cy="18.5" r="2.8"/><path d="M7.5 7.5 10 10M16.5 7.5 14 10M7.5 16.5 10 14M16.5 16.5 14 14"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/></symbol>
+    <symbol id="i-signal" viewBox="0 0 24 24"><path d="M3 20.5v-2M8 20.5v-6M13 20.5v-10M18 20.5V5"/></symbol>
+    <symbol id="i-signal-off" viewBox="0 0 24 24"><path d="M3 20.5v-2M8 20.5v-6M13 20.5v-4M18 20.5v-2M3 4l18 16"/></symbol>
+    <symbol id="i-mesh" viewBox="0 0 24 24"><circle cx="5" cy="17" r="2.2"/><circle cx="12" cy="6" r="2.2"/><circle cx="19" cy="17" r="2.2"/><path d="m6.2 15.2 4.6-7.4M13.2 7.8l4.6 7.4M7.2 17h9.6"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m14.5 6-6 6 6 6"/></symbol>
+    <symbol id="i-crosshair" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4"/></symbol>
+    <symbol id="i-gamepad" viewBox="0 0 24 24"><path d="M7 7.5h10a4.5 4.5 0 0 1 4.4 5.5l-.9 4a2.6 2.6 0 0 1-4.5 1.1L14.5 16h-5L8 18.1A2.6 2.6 0 0 1 3.5 17l-.9-4A4.5 4.5 0 0 1 7 7.5z"/><path d="M7.5 10.5v3M6 12h3"/><path d="M15.5 11h.01M17.5 13h.01"/></symbol>
+    <symbol id="i-thermo" viewBox="0 0 24 24"><path d="M14 14.3V5a2 2 0 0 0-4 0v9.3a4 4 0 1 0 4 0z"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="m3.5 11 8.5-7.5 8.5 7.5"/><path d="M6 9.5v11h12v-11"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M3.5 8h3.2l1.8-2.5h7l1.8 2.5h3.2v11.5h-17z"/><circle cx="12" cy="13.3" r="3.6"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7.5 5v14l11-7z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+    <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="18.5" r="2.3"/><circle cx="18" cy="5.5" r="2.3"/><path d="M8.3 18.5H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.7"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3.5 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
+    <symbol id="i-sos" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"/></symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2.5V6M15 2.5V6M9 18v3.5M15 18v3.5M2.5 9H6M2.5 15H6M18 9h3.5M18 15h3.5"/></symbol>
+  </defs>
+</svg>
+
+<nav class="rail" aria-label="Main">
+  <div class="logo" title="HALO"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12.5"/><circle cx="16" cy="16" r="4"/><path d="M16 3.5v5M16 23.5v5M3.5 16h5M23.5 16h5"/></svg></div>
+  <button id="btn-mission" class="rail-btn" data-tip="New search mission"><svg><use href="#i-scan"/></svg></button>
+  <button id="btn-base" class="rail-btn" data-tip="Set rescue base"><svg><use href="#i-pin"/></svg></button>
+  <button id="btn-cams" class="rail-btn" data-tip="Live camera wall"><svg><use href="#i-video"/></svg></button>
+  <button id="btn-replay" class="rail-btn" data-tip="Mission replay"><svg><use href="#i-history"/></svg></button>
+  <span class="rail-gap"></span>
+  <button id="btn-mute" class="rail-btn" data-tip="Alert sound"><svg><use href="#i-bell"/></svg></button>
+</nav>
+
+<header class="top">
+  <div class="brand"><b>HALO</b><span>Command</span></div>
+  <div class="status"><span id="mode" class="state standby">STANDBY</span><span id="k-time" class="clock">00:00</span></div>
+  <div class="metrics">
+    <div class="metric"><span>Area searched</span><b id="k-cov">0%</b><i class="meter"><i id="k-cov-bar"></i></i></div>
+    <div class="metric"><span>Victims found</span><b id="k-found">0 / 0</b></div>
+    <div class="metric"><span>Reached</span><b id="k-reached">0</b></div>
+    <div class="metric"><span>Fleet online</span><b id="k-online">0 / 0</b></div>
+    <div class="metric"><span>Teams active</span><b id="k-teams">0 / 0</b></div>
   </div>
 </header>
 
-<main>
+<main class="stage">
   <div id="map"></div>
+  <form id="search" class="search" autocomplete="off">
+    <svg><use href="#i-search"/></svg><input id="q" type="search" placeholder="Search a city, area or address" aria-label="Search a place">
+    <div id="results" class="results"></div>
+  </form>
+  <section id="launch" class="card launch" hidden>
+    <header><h2>New search mission</h2><button id="launch-cancel" class="icon" aria-label="Close"><svg><use href="#i-x"/></svg></button></header>
+    <ol class="steps">
+      <li><b>1</b><div><h3>Search area</h3><p id="launch-hint">Draw the disaster area on the map.</p>
+        <div class="seg"><button data-draw="rect">Rectangle</button><button data-draw="poly">Polygon</button><button id="draw-finish" hidden>Finish</button></div></div></li>
+      <li><b>2</b><div><h3>Resources</h3><div class="fields"><label>Drones<input id="n-drones" type="number" min="1" max="10" value="6"></label>
+        <label>Rescue teams<input id="n-teams" type="number" min="1" max="10" value="3"></label></div></div></li>
+      <li><b>3</b><div><h3>Rescue base</h3><p id="base-hint">Optional. Default: west edge of the area.</p></div></li>
+    </ol>
+    <footer><button id="launch-go" class="primary" disabled><svg><use href="#i-scan"/></svg>Search for humans</button></footer>
+  </section>
   <div id="banner" class="banner" hidden></div>
-  <div id="launch" class="card launch" hidden>
-    <h3>🔍 Search for humans</h3>
-    <p class="vmeta" id="launch-hint">Draw the disaster area on the map.</p>
-    <div class="row"><button data-draw="rect">▭ Rectangle</button><button data-draw="poly">⬠ Polygon</button><button id="draw-finish" hidden>✔ Finish</button></div>
-    <div class="row"><label>Drones <input id="n-drones" type="number" min="1" max="10" value="6"></label>
-      <label>Rescue teams <input id="n-teams" type="number" min="1" max="10" value="3"></label></div>
-    <div class="row"><button id="launch-go" class="primary" disabled>🚀 Launch</button><button id="launch-cancel">Cancel</button></div>
+  <div id="timeline" class="timeline" hidden>
+    <button id="btn-play" class="icon" aria-label="Play or pause"><svg><use href="#i-pause"/></svg></button>
+    <input id="scrub" type="range" min="0" max="0" value="0" aria-label="Replay timeline">
+    <span id="scrub-t" class="mono">0.0 s</span>
+    <select id="speed" aria-label="Replay speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option><option value="8">8×</option></select>
+    <button id="replay-exit">Exit replay</button>
   </div>
-  <aside id="panel">
-    <section id="sec-alerts"><h3>Alerts</h3><div id="alerts"><div class="empty">No alerts</div></div></section>
-    <section id="sec-drones"><h3>Drone swarm</h3><div class="drones" id="drones"></div></section>
-    <section id="sec-teams"><h3>Rescue teams</h3><div class="teams" id="teams"></div></section>
-    <section id="sec-victims"><h3>Victims · by priority</h3>
-      <div class="chips" id="vfilter"><button data-f="all" class="on">All</button><button data-f="open">Not rescued</button><button data-f="verify">Needs verification</button><button data-f="buried">Buried</button></div>
-      <div id="victims"><div class="empty">No mission yet</div></div></section>
-    <section id="sec-feed"><h3>Event feed</h3><div id="feed"></div></section>
-  </aside>
 </main>
 
-<nav id="tabs" class="tabs">
-  <button data-tab="alerts">🚨<span>Alerts</span></button><button data-tab="drones">🛩<span>Drones</span></button>
-  <button data-tab="victims">🧍<span>Victims</span></button><button data-tab="teams">🚑<span>Teams</span></button>
-  <button data-tab="cams">📹<span>Cameras</span></button>
+<aside class="panel">
+  <nav class="tabs" id="tabs">
+    <button data-tab="overview" class="on">Overview</button><button data-tab="victims">Victims <i id="c-victims">0</i></button>
+    <button data-tab="fleet">Fleet <i id="c-fleet">0</i></button><button data-tab="log">Log</button>
+  </nav>
+  <div class="tab" id="tab-overview">
+    <h4>Active alerts <i id="c-alerts">0</i></h4><div id="alerts" class="list"><p class="empty">No active alerts</p></div>
+    <h4>Rescue pipeline</h4><div id="funnel" class="funnel"></div>
+    <h4>Rescue teams</h4><div id="teams" class="list"></div>
+  </div>
+  <div class="tab" id="tab-victims" hidden>
+    <div class="seg full" id="vfilter"><button data-f="all" class="on">All</button><button data-f="open">Not rescued</button><button data-f="verify">To verify</button><button data-f="buried">Buried</button></div>
+    <div id="victims" class="list"><p class="empty">No mission yet</p></div>
+  </div>
+  <div class="tab" id="tab-fleet" hidden><div id="drones" class="list"></div></div>
+  <div class="tab" id="tab-log" hidden><div id="feed" class="feed"></div></div>
+  <section id="drawer" class="drawer" hidden>
+    <header><button id="drawer-back" class="icon" aria-label="Back"><svg><use href="#i-back"/></svg></button><h2 id="drawer-title"></h2></header>
+    <div id="drawer-body" class="drawer-body"></div>
+    <footer id="drawer-actions"></footer>
+  </section>
+</aside>
+
+<nav class="mobnav" id="mobnav">
+  <button data-tab="map" class="on"><svg><use href="#i-layers"/></svg>Map</button><button data-tab="overview"><svg><use href="#i-alert"/></svg>Alerts</button>
+  <button data-tab="victims"><svg><use href="#i-user"/></svg>Victims</button><button data-tab="fleet"><svg><use href="#i-drone"/></svg>Fleet</button>
+  <button data-tab="cams"><svg><use href="#i-video"/></svg>Cameras</button>
 </nav>
 
-<div id="camwall" class="overlay" hidden>
-  <div class="bar-top"><b>📹 Live cameras</b><div class="chips" id="campick"></div><button id="cams-close">✕</button></div>
+<div id="camwall" class="overlay vms" hidden>
+  <header><span class="rec">REC</span><b>Live cameras</b><div class="seg" id="campick"></div><span class="spacer"></span><span id="cam-clock" class="mono"></span>
+    <button id="cams-close" class="icon" aria-label="Close cameras"><svg><use href="#i-x"/></svg></button></header>
   <div id="camgrid" class="camgrid"></div>
 </div>
 
 <div id="pilot" class="overlay pilot" hidden>
-  <div class="bar-top"><b id="pilot-title">🎮 Manual control</b><span id="pilot-status" class="vmeta"></span><button id="pilot-release" class="danger">Release control</button></div>
   <div class="pilot-view">
-    <img id="pilot-cam" alt="drone camera">
-    <div id="pilot-warn" class="warn" hidden>⚠ Obstacle ahead: safety system holding the drone back</div>
-    <div class="pilot-tools"><button id="pilot-mode">Thermal</button><button id="pilot-snap">📸 Capture &amp; AI check</button></div>
+    <img id="pilot-cam" alt="Drone camera">
+    <svg class="reticle" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M46 50h-8M54 50h8M50 46v-8M50 54v8"/><circle cx="50" cy="50" r="1"/></svg>
+    <div class="hud tl"><b id="pilot-title">MANUAL · D0</b><span id="pilot-status"></span></div>
+    <div class="hud tr"><button id="pilot-mode">Thermal</button><button id="pilot-snap"><svg><use href="#i-camera"/></svg>Capture &amp; AI check</button>
+      <button id="pilot-release" class="danger">Release control</button></div>
+    <div id="pilot-warn" class="hud warn" hidden><svg><use href="#i-alert"/></svg>Obstacle ahead · safety system holding the drone back</div>
+    <div class="hud bl"><span id="pilot-idle"></span></div>
   </div>
   <div class="sticks">
-    <div class="stick" id="stick-move"><i></i><span>move</span></div>
-    <p class="vmeta keys">Keyboard: <b>W/S</b> forward/back · <b>A/D</b> left/right · <b>Q/E</b> rotate · <b>R/F</b> up/down · gamepad works too.<br>
-      Anti-crash safety stays on. Auto-release after 2 s with no input.</p>
-    <div class="stick" id="stick-alt"><i></i><span>up/down · rotate</span></div>
+    <div class="stick" id="stick-move"><i></i><span>Move</span></div>
+    <p class="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Q</kbd><kbd>E</kbd> rotate · <kbd>R</kbd><kbd>F</kbd> up/down · gamepad supported<br>
+      Anti-crash safety stays on · auto-release after 2 s without input</p>
+    <div class="stick" id="stick-alt"><i></i><span>Altitude · yaw</span></div>
   </div>
 </div>
 
-<div id="modal" class="overlay modal" hidden><div class="box"><div id="modal-body"></div><div class="row end"><button id="modal-close">Close</button></div></div></div>
+<div id="modal" class="overlay modal" hidden><div class="box"><div id="modal-body"></div><footer><button id="modal-close">Close</button></footer></div></div>
 <div id="toast" class="toast" hidden></div>
 <script src="app.js"></script>
 </body>
