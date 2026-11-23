@@ -32,32 +32,64 @@ def thermal_scan(world, drone_xy, alt, rng):
 
 
 # ---------------- camera ----------------
-def take_photo(client, cam_xyz, target_xy, path, size=320):
-    view = p.computeViewMatrix(cameraEyePosition=list(cam_xyz),
-                               cameraTargetPosition=[target_xy[0], target_xy[1], 0.0],
-                               cameraUpVector=[0, 1, 0], physicsClientId=client)
-    proj = p.computeProjectionMatrixFOV(fov=60, aspect=1.0, nearVal=0.05, farVal=20, physicsClientId=client)
-    img = p.getCameraImage(size, size, view, proj, renderer=p.ER_TINY_RENDERER, physicsClientId=client)
-    rgb = np.reshape(np.array(img[2], dtype=np.uint8), (size, size, 4))[:, :, :3]
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    cv2.imwrite(path, cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
-    return rgb
+def camera(client, eye, target, w=320, h=240, fov=60):
+    """Render an RGB frame + segmentation mask (PyBullet body id per pixel) from eye looking at target."""
+    down = np.hypot(target[0] - eye[0], target[1] - eye[1]) < 0.05
+    view = p.computeViewMatrix(list(eye), list(target), [0, 1, 0] if down else [0, 0, 1], physicsClientId=client)
+    proj = p.computeProjectionMatrixFOV(fov=fov, aspect=w / h, nearVal=0.05, farVal=20, physicsClientId=client)
+    img = p.getCameraImage(w, h, view, proj, renderer=p.ER_TINY_RENDERER, physicsClientId=client)
+    return np.reshape(img[2], (h, w, 4))[:, :, :3].astype(np.uint8), np.reshape(img[4], (h, w))
 
 
-def thermal_image(rgb, temp_c, kind, path, rng):
-    """False-colour thermal frame matching the photo: cool scene, hot blob where the heat source is."""
-    h, w = rgb.shape[:2]
+def drone_view(pos, heading):
+    """Drone camera pose: just under the airframe, looking 1 m ahead along its heading, tilted down."""
+    return [pos[0], pos[1], pos[2] - 0.03], [pos[0] + np.cos(heading), pos[1] + np.sin(heading), 0.0]
+
+
+def thermal(rgb, seg, sources):
+    """False-colour thermal frame: cool ambient rubble, warm glow on every heat-source body in view.
+    Returns (BGR image, hottest temperature seen or None)."""
     gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255.0
-    base = 0.18 + 0.22 * gray                          # ambient rubble ~ 18-24 C
-    Y, X = np.mgrid[0:h, 0:w]
-    sx, sy = {"person": (70, 26), "hand": (16, 16), "foot": (24, 14), "head": (18, 18),
-              "fire": (34, 34), "animal": (40, 18)}.get(kind, (24, 24))
-    heat = np.clip((temp_c - 20) / 25.0, 0.3, 1.0)
-    blob = heat * np.exp(-(((X - w / 2) / sx) ** 2 + ((Y - h / 2) / sy) ** 2))
-    img = np.clip(base + blob + rng.normal(0, 0.015, base.shape), 0, 1)
+    temp = 18.0 + 6.0 * gray                               # ambient rubble ~ 18-24 C
+    hot = None
+    for s in sources:
+        m = np.isin(seg, s.bodies)
+        if m.any():
+            temp[m] = s.temp_c
+            hot = max(hot or 0.0, s.temp_c)
+    glow = cv2.GaussianBlur(temp, (0, 0), 4)
+    img = np.clip((np.maximum(temp, glow) - 15.0) / 30.0, 0, 1)
     out = cv2.applyColorMap((img * 255).astype(np.uint8), cv2.COLORMAP_INFERNO)
-    cv2.putText(out, f"{temp_c:.1f} C", (8, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-    cv2.imwrite(path, out)
+    if hot:
+        cv2.putText(out, f"{hot:.1f} C", (8, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+    return out, hot
+
+
+def detect(seg, sources):
+    """Stand-in person / body-part detector: a box around every human (or part) visible in the frame."""
+    out = []
+    for s in sources:
+        if s.is_human and s.bodies:
+            ys, xs = np.nonzero(np.isin(seg, s.bodies))
+            if len(xs):
+                out.append((s, (int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max()))))
+    return out
+
+
+def draw_boxes(bgr, dets):
+    for s, (x0, y0, x1, y1) in dets:
+        cv2.rectangle(bgr, (x0 - 3, y0 - 3), (x1 + 3, y1 + 3), (0, 255, 0), 2)
+        cv2.putText(bgr, f"{LABELS[s.kind].replace('body part: ', '')} {CONF_MEAN[s.kind]:.0%}", (x0 - 3, max(12, y0 - 7)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 1, cv2.LINE_AA)
+    return bgr
+
+
+def take_photo(client, eye, target, sources, path, size=320):
+    """Photo + matching thermal frame for the rescuer, with the AI's boxes drawn on the photo."""
+    rgb, seg = camera(client, eye, target, size, size)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    cv2.imwrite(path, draw_boxes(cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR), detect(seg, sources)))
+    cv2.imwrite(path.replace(".png", "_thermal.png"), thermal(rgb, seg, sources)[0])
 
 
 # ---------------- AI victim check ----------------

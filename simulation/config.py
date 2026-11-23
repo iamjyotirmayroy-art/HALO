@@ -12,9 +12,41 @@ AREA = 12.0            # search area is [0, AREA] x [0, AREA] metres
 CELL = 0.5             # grid resolution (m)
 N = int(AREA / CELL)   # cells per side
 
-# ---------------- base / charging pad ----------------
-BASE = np.array([-1.5, 6.0])          # rescuer base + charging pads
+# ---------------- map placement (dashboard) ----------------
+ORIGIN = (22.5726, 88.3639)            # lat, lon of the search square's south-west corner
+MAP_SCALE = 8.0                        # real metres per sim metre (12 m model ~ 96 m block)
+AREA_POLY = None                       # rescuer-drawn area in sim metres; None = whole square
+
+# ---------------- base / charging pads ----------------
 PAD_SPACING = 0.9
+
+
+def set_base(xy):
+    """Place the base 1.5 m outside the edge of the search square nearest to xy, facing it."""
+    global BASE, ENTRY, NORMAL, TANGENT
+    d = np.asarray(xy, float) - AREA / 2
+    k = int(np.argmax(np.abs(d)))
+    NORMAL = np.zeros(2)
+    NORMAL[k] = 1.0 if d[k] > 0 else -1.0                  # outward normal of that edge
+    TANGENT = np.abs(NORMAL[::-1])
+    edge = np.zeros(2)
+    edge[k] = AREA if d[k] > 0 else 0.0
+    edge[1 - k] = np.clip(xy[1 - k], 2.5, AREA - 2.5)
+    BASE = edge + 1.5 * NORMAL                             # rescuer base + charging pads
+    ENTRY = edge - 0.25 * NORMAL                           # where rescuers walk into the area
+
+
+def pad(i, n):
+    """Charging pad of drone i (of n), in a row along the base edge."""
+    return BASE + TANGENT * (i - (n - 1) / 2) * PAD_SPACING
+
+
+def stage(pad_xy):
+    """Point just inside the area, in line with a pad: drones enter and leave the base through it."""
+    return pad_xy - NORMAL * 1.9
+
+
+set_base((-1.5, 6.0))
 
 # ---------------- swarm ----------------
 NUM_DRONES = 6
@@ -63,6 +95,7 @@ AFTERSHOCK_DELAY = 1.2                 # s after a drone goes inside the damaged
 PYB_FREQ = 240
 CTRL_FREQ = 48
 MAX_TIME = 420.0                       # hard stop (s)
+CAM_FPS = 4                            # live camera frames per second (watched drones only)
 FRAME_DT = 0.2                         # video frame every 0.2 s of sim time
 SEED = 7
 

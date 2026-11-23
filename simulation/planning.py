@@ -143,8 +143,7 @@ def rescuer_route(world, goal_xy):
     Rescuers can't walk through tall buildings or a sealed collapse; the safe route also
     avoids the unstable building and keeps radiation dose under the limit.
     """
-    entry = np.array([0.25, C.BASE[1]])       # where rescuers enter the block from the base
-    start, goal = to_cell(entry), to_cell(goal_xy)
+    start, goal = to_cell(C.ENTRY), to_cell(goal_xy)
     walls = world.tall | world.sealed
     target_note = ""
     if walls[goal] or world.weak[goal]:
@@ -169,8 +168,11 @@ def rescuer_route(world, goal_xy):
     sd, ss = stats(direct), stats(safe)
     direct_unsafe = sd is not None and (sd["dose"] > C.RAD_DOSE_LIMIT or sd["unstable_cells"] > 0)
     status = "SAFE ROUTE" if ss and ss["dose"] <= C.RAD_DOSE_LIMIT else "NO SAFE ROUTE - specialist team"
+    reason = ""
     if ss and direct_unsafe:
         status = "REROUTED (direct route unsafe)"
-    return dict(direct=sd, safe=ss, direct_unsafe=direct_unsafe, status=status, note=target_note,
+        reason = " + ".join(r for r, bad in [(f"radiation dose {sd['dose']} > {C.RAD_DOSE_LIMIT}", sd["dose"] > C.RAD_DOSE_LIMIT),
+                                             ("crosses an unstable structure", sd["unstable_cells"] > 0)] if bad)
+    return dict(direct=sd, safe=ss, direct_unsafe=direct_unsafe, status=status, note=target_note, reason=reason,
                 safe_path=[cell_center(c).round(2).tolist() for c in safe] if safe else [],
                 direct_path=[cell_center(c).round(2).tolist() for c in direct] if direct else [])

@@ -8,13 +8,12 @@ keeps working from its own plan and buffers reports until it reconnects.
 """
 import numpy as np
 import config as C
-from world import to_cell, cell_center
-from planning import split_zones, coverage_waypoints, flight_path, inflate, line_clear
+from planning import split_zones, coverage_waypoints, flight_path, line_clear
 import perception as P
 
-# drone states
-IDLE, SEARCH, INVESTIGATE, RETURN, CHARGING, TRAPPED, DONE = (
-    "IDLE", "SEARCH", "INVESTIGATE", "RETURN", "CHARGING", "TRAPPED", "DONE")
+# drone states (MANUAL = flown by a rescuer from the dashboard, through the safety filter)
+IDLE, SEARCH, INVESTIGATE, RETURN, CHARGING, TRAPPED, DONE, MANUAL = (
+    "IDLE", "SEARCH", "INVESTIGATE", "RETURN", "CHARGING", "TRAPPED", "DONE", "MANUAL")
 
 
 class DroneAgent:
@@ -38,6 +37,12 @@ class DroneAgent:
         self.rssi_log = {}       # phone id -> [(xy, rssi)]
         self.path = []           # flown trail (for the map)
         self.distance = 0.0
+        self.yaw = 0.0           # commanded yaw (rescuer control)
+        self.heading = 0.0       # direction the camera faces
+        self.vel = np.zeros(3)   # last safe velocity (rescuer control)
+        self.hold = self.pos.copy()   # position set-point while a rescuer flies it
+        self.blocked = False     # safety filter overrode the rescuer's input
+        self.recalled = False    # rescuer recalled it: land and stay
 
     @property
     def xy(self):
@@ -51,7 +56,7 @@ class DroneAgent:
             self.state = SEARCH
 
     def battery_needed_home(self):
-        stage = np.array([0.4, self.pad[1]])
+        stage = C.stage(self.pad)
         d = np.linalg.norm(self.xy - stage) + np.linalg.norm(stage - self.pad) + 1.0
         t = d / C.SPEED
         return t * (C.BATTERY_DRAIN_HOVER + C.BATTERY_DRAIN_MOVE * C.SPEED) + C.BATTERY_RESERVE
@@ -71,6 +76,13 @@ class DroneAgent:
                     sim.command.rebalance(sim, reason=f"drone {self.id} rejoined")
                 else:
                     self.state = DONE
+            return
+
+        if self.state == MANUAL:
+            if self.battery <= self.battery_needed_home():     # failsafe overrides the rescuer
+                self.state, self.route = RETURN, self.home_route(sim)
+                sim.event(f"Drone {self.id} battery {self.battery:.0f}% - failsafe ends manual control, "
+                          f"returning home", "warn")
             return
 
         # low battery -> fly home (agent decides this itself)
@@ -126,18 +138,7 @@ class DroneAgent:
                     inv["phase"] = "photo"; inv["t_photo"] = sim.t
             elif inv["phase"] == "photo":
                 if sim.t - inv["t_photo"] > 0.5:
-                    path = f"{sim.out}/photos/{s.id}_drone{self.id}.png"
-                    rgb = P.take_photo(sim.client, self.pos - np.array([0.0, 0.0, 0.04]), s.pos, path)
-                    tpath = path.replace(".png", "_thermal.png")
-                    P.thermal_image(rgb, inv["temp"], s.kind, tpath, sim.rng)
-                    res = P.ai_check(s, inv["temp"], sim.rng)
-                    s.reported = True
-                    trapped = s.kind in ("hand", "foot", "head") or w.inside_weak(s.pos)
-                    rep = dict(type="victim", id=s.id, pos=s.pos.round(2).tolist(), photo=path, thermal=tpath,
-                               drone=self.id, t=round(sim.t, 1), trapped=trapped, source="thermal+camera",
-                               is_human=s.is_human, kind=s.kind,
-                               **res)
-                    self.report(sim, rep)
+                    self.photograph(sim, s, inv["temp"], self.pos - np.array([0.0, 0.0, 0.04]), [*s.pos, 0.0])
                     inv["phase"] = "climb"
                     if w.inside_weak(self.xy, margin=0.1):
                         self.inspect_inside_t = sim.t
@@ -166,15 +167,28 @@ class DroneAgent:
                 self.target = np.array([self.pad[0], self.pad[1], 0.05])
                 if self.pos[2] < 0.15:
                     self.landing = False
-                    if self.battery < 95:
+                    if self.recalled:
+                        self.state = DONE
+                        sim.event(f"Drone {self.id} landed at base (recalled by rescuer)", "info")
+                    elif self.battery < 95:
                         self.state = CHARGING
                         sim.event(f"Drone {self.id} docked on charging pad", "info")
                     else:
                         self.state = DONE
 
+    def photograph(self, sim, s, temp, eye, target):
+        """Photo + thermal of heat source s, AI check, report to Command AI (buffered if offline)."""
+        path = f"{sim.out}/photos/{s.id}_drone{self.id}.png"
+        P.take_photo(sim.client, eye, target, sim.world.sources, path)
+        s.reported = True
+        trapped = s.kind in ("hand", "foot", "head") or sim.world.inside_weak(s.pos)
+        self.report(sim, dict(type="victim", id=s.id, pos=s.pos.round(2).tolist(), photo=path,
+                              thermal=path.replace(".png", "_thermal.png"), drone=self.id, t=round(sim.t, 1),
+                              trapped=trapped, source="thermal+camera", is_human=s.is_human, kind=s.kind,
+                              **P.ai_check(s, temp, sim.rng)))
+
     def home_route(self, sim):
-        stage = np.array([0.4, self.pad[1]])
-        return flight_path(sim.fly_blocked, self.xy, stage) + [self.pad]
+        return flight_path(sim.fly_blocked, self.xy, C.stage(self.pad)) + [self.pad]
 
     def _trapped(self, sim):
         self.state = TRAPPED

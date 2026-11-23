@@ -11,14 +11,12 @@ import pybullet as p
 import config as C
 from planning import rescuer_route
 
-ENTRY = np.array([0.25, C.BASE[1]])
-
 
 class RescueTeam:
-    def __init__(self, i, client):
+    def __init__(self, i, n, client):
         self.id = i
         self.name = f"R{i + 1}"
-        self.home = ENTRY + np.array([0.0, (i - 1) * 0.5])
+        self.home = C.ENTRY + C.TANGENT * (i - (n - 1) / 2) * 0.5
         self.pos = self.home.copy()
         self.state = "READY"          # READY | EN_ROUTE | ON_SITE | RETURNING
         self.path, self.victim, self.t_site = [], None, 0.0
@@ -73,8 +71,8 @@ class RescueTeam:
 
 class Dispatcher:
     """Part of the Command AI: verification queue + team assignment."""
-    def __init__(self, sim):
-        self.teams = [RescueTeam(i, sim.client) for i in range(C.NUM_RESCUERS)]
+    def __init__(self, sim, n_teams):
+        self.teams = [RescueTeam(i, n_teams, sim.client) for i in range(n_teams)]
         self.queue = []           # victims waiting for a team
         self.verify = []          # (due_time, victim) waiting for a human look at the photo
 
@@ -88,21 +86,37 @@ class Dispatcher:
     def busy(self):
         return bool(self.queue or self.verify or any(t.state != "READY" for t in self.teams))
 
+    def decide(self, sim, v, person):
+        """A rescuer's verdict on a victim photo: dispatch a team, or dismiss it."""
+        self.verify = [it for it in self.verify if it[1] is not v]
+        if person:
+            v["status"] = "VERIFIED BY RESCUER"
+            sim.event(f"Rescuer confirmed {v['id']} is a person ({v['label']}) - dispatching", "victim")
+            if v not in self.queue and not v.get("route_path"):
+                self.queue.append(v)
+        else:
+            v["status"] = "DISMISSED - not a person"
+            if v in self.queue:
+                self.queue.remove(v)
+            sim.event(f"Rescuer marked {v['id']} as not a person - dismissed", "info")
+
+    def send(self, sim, v):
+        """Rescuer asked for a team now: verified, and first in the queue."""
+        if v.get("route_path"):
+            sim.event(f"Team already assigned to {v['id']}", "info")
+            return
+        if v not in self.queue:
+            self.decide(sim, v, True)
+        v["urgent"] = True
+        sim.event(f"Rescuer: send the next free team to {v['id']}", "info")
+
     def update(self, sim, dt):
-        # rescuer at base reviews uncertain photos
-        for item in list(self.verify):
-            due, v = item
+        # no answer from the rescuer in time: the base team reviews uncertain photos itself
+        for due, v in list(self.verify):
             if sim.t >= due:
-                self.verify.remove(item)
-                if v["is_human"]:
-                    v["status"] = "VERIFIED BY RESCUER"
-                    sim.event(f"Rescuer checked photo of {v['id']}: it IS a person ({v['label']}) - dispatching", "victim")
-                    self.queue.append(v)
-                else:
-                    v["status"] = "DISMISSED - not a person"
-                    sim.event(f"Rescuer checked photo of {v['id']}: not a person - dismissed", "info")
-        # assign free teams to the most urgent victims
-        self.queue.sort(key=lambda v: -v["priority"])
+                self.decide(sim, v, v["is_human"])
+        # assign free teams to the most urgent victims (rescuer requests first)
+        self.queue.sort(key=lambda v: (not v.get("urgent"), -v["priority"]))
         for team in self.teams:
             if team.state != "READY" or not self.queue:
                 continue
@@ -114,9 +128,9 @@ class Dispatcher:
                 v["status"] += " | NO SAFE ROUTE - specialist team"
                 sim.event(f"No safe route to {v['id']} - flagged for specialist team", "alarm")
                 continue
-            v["route_path"] = [list(ENTRY)] + r["safe_path"]
+            v["route_path"] = [C.ENTRY.tolist()] + r["safe_path"]
             team.victim, team.state = v, "EN_ROUTE"
-            team.path = [list(ENTRY)] + r["safe_path"]
+            team.path = list(v["route_path"])
             msg = f"Team {team.name} dispatched to {v['id']} (priority {v['priority']})"
             if r["direct_unsafe"]:
                 msg += f" - direct route unsafe, rerouted ({r['direct']['length_m']}m -> {r['safe']['length_m']}m)"

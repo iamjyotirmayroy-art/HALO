@@ -16,6 +16,19 @@ def cell_center(c):
     return np.array([(c[0] + 0.5) * C.CELL, (c[1] + 0.5) * C.CELL])
 
 
+def poly_mask(poly):
+    """Grid cells whose centre lies inside the polygon (even-odd rule). None = the whole square."""
+    if poly is None:
+        return np.ones((C.N, C.N), bool)
+    g = (np.arange(C.N) + 0.5) * C.CELL
+    X, Y = np.meshgrid(g, g, indexing="ij")
+    q = np.asarray(poly, float)
+    inside = np.zeros((C.N, C.N), bool)
+    for (x0, y0), (x1, y1) in zip(q, np.roll(q, -1, 0)):
+        inside ^= ((y0 > Y) != (y1 > Y)) & (X < x0 + (Y - y0) * (x1 - x0) / (y1 - y0 + 1e-12))
+    return inside
+
+
 @dataclass
 class HeatSource:
     id: str
@@ -25,13 +38,14 @@ class HeatSource:
     is_human: bool
     has_phone: bool = False
     visible: bool = True   # False = fully buried (no thermal / camera view)
-    body_id: int = -1
+    bodies: list = field(default_factory=list)   # PyBullet bodies (camera segmentation -> thermal, AI boxes)
     reported: bool = False
 
 
 @dataclass
 class World:
     client: int
+    area: np.ndarray                            # cells inside the rescuer-drawn search area
     tall: np.ndarray = field(default=None)      # intact buildings: block flight
     rubble: np.ndarray = field(default=None)    # low debris: slows rescuers
     weak: np.ndarray = field(default=None)      # damaged / unstable structure
@@ -42,7 +56,7 @@ class World:
     collapsed: bool = False
 
     # ------------------------------------------------------------------
-    def build(self):
+    def build(self, n_drones):
         cl = self.client
         n = C.N
         self.tall = np.zeros((n, n), bool)
@@ -53,8 +67,10 @@ class World:
         p.changeVisualShape(0, -1, textureUniqueId=-1, rgbaColor=[0.47, 0.45, 0.41, 1], physicsClientId=cl)  # dusty ground
         # roads (asphalt strips) and a lighter search-area pad so the block reads as a city street grid
         self._box((-0.3, -0.3, C.AREA + 0.3, C.AREA + 0.3), 0.004, [0.56, 0.54, 0.49, 1])
+        edge = C.BASE - 1.5 * C.NORMAL
+        road = np.array([edge - C.TANGENT, C.BASE + 1.1 * C.NORMAL + C.TANGENT])   # access road to the base
         for r in [(3.4, -0.3, 4.4, C.AREA + 0.3), (7.0, -0.3, 8.0, C.AREA + 0.3),
-                  (-0.3, 3.6, C.AREA + 0.3, 4.6), (-0.3, 7.0, C.AREA + 0.3, 7.9), (-2.6, 5.0, 0.0, 7.0)]:
+                  (-0.3, 3.6, C.AREA + 0.3, 4.6), (-0.3, 7.0, C.AREA + 0.3, 7.9), (*road.min(0), *road.max(0))]:
             self._box(r, 0.008, [0.30, 0.30, 0.32, 1])
 
         # intact tall buildings (x0, y0, x1, y1, height)
@@ -95,10 +111,11 @@ class World:
         self._cyl(self.rad_center, 0.18, 0.4, [0.95, 0.85, 0.1, 1])
 
         # charging pads at base
-        for i in range(C.NUM_DRONES):
-            pad = C.BASE + np.array([0, (i - (C.NUM_DRONES - 1) / 2) * C.PAD_SPACING])
-            self._box((pad[0] - 0.2, pad[1] - 0.2, pad[0] + 0.2, pad[1] + 0.2), 0.02, [0.1, 0.6, 0.9, 1])
-        self._box((C.BASE[0] - 1.9, C.BASE[1] - 2.0, C.BASE[0] - 1.5, C.BASE[1] + 2.0), 0.5, [0.9, 0.2, 0.2, 1])  # rescue truck
+        for i in range(n_drones):
+            q = C.pad(i, n_drones)
+            self._box((q[0] - 0.2, q[1] - 0.2, q[0] + 0.2, q[1] + 0.2), 0.02, [0.1, 0.6, 0.9, 1])
+        truck = np.array([C.BASE + 1.5 * C.NORMAL - 2 * C.TANGENT, C.BASE + 1.9 * C.NORMAL + 2 * C.TANGENT])
+        self._box((*truck.min(0), *truck.max(0)), 0.5, [0.9, 0.2, 0.2, 1])  # rescue truck
 
         # ---- heat sources: 20 people (some only partly visible, 3 fully buried) + 3 decoys ----
         S = HeatSource
@@ -120,30 +137,30 @@ class World:
         self.sources += [S("H1", "fire", np.array([7.0, 7.6]), 180.0, False),
                          S("H2", "animal", np.array([3.2, 3.6]), 38.5, False),
                          S("H3", "fire", np.array([9.8, 11.6]), 95.0, False)]
+        self.sources = [s for s in self.sources if self.area[to_cell(s.pos)]]   # only the marked area
         for s in self.sources:
-            s.body_id = self._spawn_source(s)
+            s.bodies = self._spawn_source(s)
 
     # ------------------------------------------------------------------
     def _spawn_source(self, s):
         x, y = s.pos
         skin = [0.87, 0.67, 0.53, 1]
         if s.kind == "person":       # lying person: torso + head
-            b = self._box((x - 0.28, y - 0.09, x + 0.28, y + 0.09), 0.1, [0.2, 0.3, 0.7, 1])
-            self._sphere((x + 0.36, y), 0.08, skin, z=0.08)
-            return b
+            return [self._box((x - 0.28, y - 0.09, x + 0.28, y + 0.09), 0.1, [0.2, 0.3, 0.7, 1]),
+                    self._sphere((x + 0.36, y), 0.08, skin, z=0.08)]
         if s.kind == "hand":         # arm sticking out of rubble
-            self._box((x - 0.04, y - 0.04, x + 0.04, y + 0.04), 0.32, skin)
-            return self._sphere((x, y), 0.06, skin, z=0.34)
+            return [self._box((x - 0.04, y - 0.04, x + 0.04, y + 0.04), 0.32, skin),
+                    self._sphere((x, y), 0.06, skin, z=0.34)]
         if s.kind == "foot":
-            return self._box((x - 0.12, y - 0.05, x + 0.12, y + 0.05), 0.12, [0.25, 0.2, 0.15, 1])
+            return [self._box((x - 0.12, y - 0.05, x + 0.12, y + 0.05), 0.12, [0.25, 0.2, 0.15, 1])]
         if s.kind == "head":
-            return self._sphere((x, y), 0.09, skin, z=0.22)
+            return [self._sphere((x, y), 0.09, skin, z=0.22)]
         if s.kind == "fire":
-            self._box((x - 0.2, y - 0.2, x + 0.2, y + 0.2), 0.15, [0.15, 0.15, 0.15, 1])
-            return self._cyl(s.pos, 0.12, 0.35, [1.0, 0.45, 0.05, 1], z0=0.15)
+            return [self._box((x - 0.2, y - 0.2, x + 0.2, y + 0.2), 0.15, [0.15, 0.15, 0.15, 1]),
+                    self._cyl(s.pos, 0.12, 0.35, [1.0, 0.45, 0.05, 1], z0=0.15)]
         if s.kind == "animal":
-            return self._box((x - 0.18, y - 0.07, x + 0.18, y + 0.07), 0.14, [0.55, 0.35, 0.15, 1])
-        return -1                    # buried: nothing visible
+            return [self._box((x - 0.18, y - 0.07, x + 0.18, y + 0.07), 0.14, [0.55, 0.35, 0.15, 1])]
+        return []                    # buried: nothing visible
 
     def _box(self, r, h, rgba, yaw=0.0):
         x0, y0, x1, y1 = r

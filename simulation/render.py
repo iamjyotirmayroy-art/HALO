@@ -30,7 +30,6 @@ def render_3d(client, t):
 
 def base_map(world):
     img = np.full((H, WM, 3), 30, np.uint8)
-    cs = int(C.CELL * PX)
     for i in range(C.N):
         for j in range(C.N):
             x0, y1 = m2px((i * C.CELL, j * C.CELL))
@@ -53,15 +52,15 @@ def base_map(world):
     cv2.putText(img, "RAD", m2px(world.rad_center + np.array([-0.3, -0.1])), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
                 (0, 0, 0), 1, cv2.LINE_AA)
     bx, by = m2px(C.BASE)
-    cv2.rectangle(img, (bx - 22, by - 70), (bx + 22, by + 70), (150, 90, 20), 2)
-    cv2.putText(img, "BASE", (bx - 20, by + 88), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 200, 120), 1)
+    hx, hy = int(22 + 48 * C.TANGENT[0]), int(22 + 48 * C.TANGENT[1])     # pads run along the base edge
+    cv2.rectangle(img, (bx - hx, by - hy), (bx + hx, by + hy), (150, 90, 20), 2)
+    cv2.putText(img, "BASE", (bx - 20, by + hy + 18), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 200, 120), 1)
     cv2.rectangle(img, m2px((0, C.AREA)), m2px((C.AREA, 0)), (255, 255, 255), 1)
     return img
 
 
 def render_map(sim, base):
     img = base.copy()
-    cs = int(C.CELL * PX)
     # covered cells tinted with the colour of the drone that searched them
     over = img.copy()
     idx = np.argwhere(sim.covered)

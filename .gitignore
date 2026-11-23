@@ -2,3 +2,10 @@ __pycache__/
 *.pyc
 simulation/results/_raw.mp4
 .venv/
+# runtime files written while a dashboard mission runs
+simulation/results/cams/
+simulation/results/snapshots/
+simulation/results/commands.json*
+simulation/results/area.json
+simulation/results/mission.log
+simulation/results/*.tmp

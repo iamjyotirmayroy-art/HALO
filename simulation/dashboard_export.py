@@ -25,14 +25,16 @@ class Exporter:
         self.static = None
 
     def _static(self):
-        w = self.sim.world
+        s, w = self.sim, self.sim.world
         rects = lambda g: [[int(i), int(j)] for i, j in np.argwhere(g)]
-        return dict(area=C.AREA, cell=C.CELL, n=C.N, base=_f(C.BASE), entry=[0.25, float(C.BASE[1])],
+        return dict(area=C.AREA, cell=C.CELL, n=C.N, base=_f(C.BASE), entry=_f(C.ENTRY),
+                    pads=[_f(d.pad) for d in s.drones], poly=C.AREA_POLY, origin=list(C.ORIGIN),
+                    area_m2=round(len(s.free_cells) * (C.CELL * C.MAP_SCALE) ** 2),
                     tall=rects(w.tall), weak=rects(w.weak), rubble=rects(w.rubble),
                     radiation=[[round(float(v), 2) for v in row] for row in w.radiation],
                     dead_zone=dict(c=_f(C.DEAD_ZONE_C), r=C.DEAD_ZONE_R), weak_box=list(w.weak_box),
-                    n_victims=self.sim.n_humans, n_drones=len(self.sim.drones),
-                    n_teams=len(self.sim.dispatch.teams), map_scale=8.0)
+                    n_victims=s.n_humans, n_drones=len(s.drones), n_teams=len(s.dispatch.teams),
+                    map_scale=C.MAP_SCALE)
 
     def _state(self, final=False):
         s = self.sim
@@ -48,13 +50,21 @@ class Exporter:
                           route_status=(v.get("route") or {}).get("status"),
                           route_note=(v.get("route") or {}).get("note")))
         routes = {k: dict(safe=r["safe_path"], direct=r["direct_path"] if r["direct_unsafe"] else [],
-                          status=r["status"]) for k, r in s.routes.items()}
+                          status=r["status"], reason=r["reason"]) for k, r in s.routes.items()}
+        zones = np.full((C.N, C.N), ".")
+        for d in s.drones:
+            if d.zone:
+                zones[tuple(np.array(d.zone).T)] = chr(48 + d.id)
         return dict(
             t=round(s.t, 1), final=final, collapsed=s.world.collapsed,
             coverage=round(100 * s.coverage(), 1),
             covered="".join("1" if c else "0" for c in s.covered.flatten()),
+            zones="".join(zones.flatten()),
             drones=[dict(id=d.id, pos=_f(d.pos), state=d.state, battery=round(d.battery, 1), online=d.online,
-                         hops=d.hops) for d in s.drones],
+                         hops=d.hops, heading=round(d.heading, 2), blocked=d.blocked, recalled=d.recalled)
+                    for d in s.drones],
+            trails=[[_f(q) for q in d.path] for d in s.drones],
+            cams=s.cam_meta, snapshots=s.snapshots[-10:], ack=s.link.ack,
             teams=[dict(name=t.name, pos=_f(t.pos), state=t.state,
                         victim=(t.victim or {}).get("id"), rescued=list(t.rescued)) for t in s.dispatch.teams],
             victims=V, routes=routes, sos=s.sos,
@@ -71,7 +81,7 @@ class Exporter:
         if self.static is None:
             self.static = self._static()
         st = self._state(final)
-        self.frames.append(st)
+        self.frames.append({k: v for k, v in st.items() if k not in ("trails", "cams", "snapshots", "ack")})
         tmp = os.path.join(self.sim.out, "live.json.tmp")
         with open(tmp, "w") as f:
             json.dump(dict(static=self.static, state=st), f, default=_j)

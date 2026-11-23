@@ -5,6 +5,7 @@ HALO mission runner.
     python run_mission.py --gui           # watch it live in the PyBullet window
     python run_mission.py --drones 1      # single-drone baseline for comparison
     python run_mission.py --no-video      # fastest: metrics only
+    python run_mission.py --area area.json --live   # started by the dashboard: rescuer-drawn area, real time
 """
 import argparse, json, os, time
 import numpy as np
@@ -16,18 +17,22 @@ from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
 from gym_pybullet_drones.utils.enums import DroneModel, Physics
 
 import config as C
-from world import World, to_cell, cell_center
+from world import World, to_cell, cell_center, poly_mask
 from planning import inflate, rescuer_route
-from agents import DroneAgent, CommandAI, SEARCH, INVESTIGATE, RETURN, CHARGING, TRAPPED, DONE, IDLE
+from agents import DroneAgent, CommandAI, SEARCH, INVESTIGATE, RETURN, CHARGING, TRAPPED, DONE, IDLE, MANUAL
 import perception as P
 import render as R
+import safety
 from rescue import Dispatcher
+from rescuer_link import RescuerLink
+from cameras import CameraPool
 import dashboard_export as DX
 
 
 class Mission:
-    def __init__(self, n_drones, gui, out, video, aftershock=True):
+    def __init__(self, n_drones, n_teams, gui, out, video, aftershock=True, realtime=False):
         self.aftershock = aftershock
+        self.realtime = realtime or gui
         self.out = out
         os.makedirs(out, exist_ok=True)
         self.rng = np.random.default_rng(C.SEED)
@@ -38,7 +43,7 @@ class Mission:
         self.zone_version = 0
         self.video = video
 
-        pads = [C.BASE + np.array([0, (i - (C.NUM_DRONES - 1) / 2) * C.PAD_SPACING]) for i in range(n_drones)]
+        pads = [C.pad(i, n_drones) for i in range(n_drones)]
         init = np.array([[q[0], q[1], 0.05] for q in pads])
         self.env = CtrlAviary(drone_model=DroneModel.CF2X, num_drones=n_drones, initial_xyzs=init,
                               physics=Physics.PYB, pyb_freq=C.PYB_FREQ, ctrl_freq=C.CTRL_FREQ,
@@ -48,8 +53,8 @@ class Mission:
         if gui:
             p.resetDebugVisualizerCamera(13, 35, -50, [5, 6, 0], physicsClientId=self.client)
             p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0, physicsClientId=self.client)
-        self.world = World(self.client)
-        self.world.build()
+        self.world = World(self.client, poly_mask(C.AREA_POLY))
+        self.world.build(n_drones)
         # big coloured beacons above each drone so they're visible in the wide 3D shot
         self.markers = []
         for i in range(n_drones):
@@ -62,11 +67,16 @@ class Mission:
         batt = C.START_BATTERY if n_drones == len(C.START_BATTERY) else [100] * n_drones
         self.drones = [DroneAgent(i, pads[i], batt[i]) for i in range(n_drones)]
         self.command = CommandAI()
-        self.dispatch = Dispatcher(self)
+        self.dispatch = Dispatcher(self, n_teams)
         self.exporter = DX.Exporter(self)
+        self.link = RescuerLink(self)
+        self.cams = CameraPool(n_drones, os.path.join(out, "cams"))
+        self.cam_meta, self.snapshots = {}, []
+        corners = np.vstack([[0, 0], [C.AREA, C.AREA], pads])
+        self.bounds = (np.r_[corners.min(0) - 0.5, 0.3], np.r_[corners.max(0) + 0.5, 2.5])   # geofence
 
         self.fly_blocked = inflate(self.world.tall, 1)
-        self.free_cells = [(i, j) for i in range(C.N) for j in range(C.N) if not self.world.tall[i, j]]
+        self.free_cells = [tuple(c) for c in np.argwhere(~self.world.tall & self.world.area)]
         self.covered = np.zeros((C.N, C.N), bool)
         self.cover_owner = np.zeros((C.N, C.N), int)
         g = (np.arange(C.N) + 0.5) * C.CELL
@@ -84,7 +94,7 @@ class Mission:
 
     def covered_around(self, xy, r=0.75):
         m = np.hypot(self.GX - xy[0], self.GY - xy[1]) <= r
-        return bool(self.covered[m & ~self.world.tall].all())
+        return bool(self.covered[m & ~self.world.tall & self.world.area].all())
 
     def snap_free(self, xy):
         c = to_cell(xy)
@@ -149,15 +159,15 @@ class Mission:
         self.command.rebalance(self, "start")
         for d in self.drones:
             d.state = SEARCH
-        self.event(f"Rescuer marked a {C.AREA:.0f}x{C.AREA:.0f} m search area. Swarm of {len(self.drones)} "
-                   f"drones split it into {len(self.drones)} equal zones", "info")
+        self.event(f"Rescuer marked a {len(self.free_cells) * (C.CELL * C.MAP_SCALE) ** 2:,.0f} m² search area. "
+                   f"Swarm of {len(self.drones)} drones split it into {len(self.drones)} equal zones", "info")
         dt = 1.0 / C.CTRL_FREQ
         writer, frame_t, base = None, 0.0, R.base_map(self.world)
         if self.video:
             raw = os.path.join(self.out, "_raw.mp4")
             writer = cv2.VideoWriter(raw, cv2.VideoWriter_fourcc(*"mp4v"), 15, (R.W3 + R.WM, R.H))
-        step, slow_every = 0, int(C.CTRL_FREQ / 4)
-        t_wall = time.time()
+        step, slow_every, link_every, next_cam = 0, int(C.CTRL_FREQ / 4), C.CTRL_FREQ // 10, 0.0
+        t_wall = time.time()                          # real-time pacing: wall-clock time of the next step
         finished_at = None
         while self.t < C.MAX_TIME:
             # sense: true drone states from the physics engine
@@ -166,6 +176,10 @@ class Mission:
                 newpos = st[0:3].copy()
                 d.distance += np.linalg.norm(newpos[:2] - d.pos[:2])
                 d.pos = newpos
+                if d.state == MANUAL:
+                    d.heading = d.yaw
+                elif np.hypot(*st[10:12]) > 0.15:
+                    d.heading = float(np.arctan2(st[11], st[10]))
             # coverage marking
             for d in self.drones:
                 if d.state in (SEARCH, INVESTIGATE) and d.pos[2] > 0.4:
@@ -179,10 +193,16 @@ class Mission:
                     if d.state in (SEARCH, INVESTIGATE, RETURN) and d.pos[2] > 0.3:
                         for pid, rssi in P.phone_rssi(self.world, d.xy, self.rng):
                             d.rssi_log.setdefault(pid, []).append((d.xy.copy(), rssi))
-                    d.path.append(d.xy.copy())
+                    if not d.path or np.linalg.norm(d.xy - d.path[-1]) > 0.15:
+                        d.path.append(d.xy.copy())   # flown trail, thinned for the map
                 if step % (slow_every * 20) == 0:
                     self.phone_check()
                 self.exporter.tick()
+            if step % link_every == 0:
+                self.link.poll(self)
+            if self.t >= next_cam:
+                next_cam = self.t + 1.0 / C.CAM_FPS
+                self.update_cams()
             # think + battery
             for d in self.drones:
                 d.think(self, dt)
@@ -194,11 +214,14 @@ class Mission:
             for a in self.drones:
                 for b in self.drones:
                     near_pads = np.linalg.norm(b.xy - b.pad) < 0.35 and b.state == RETURN
-                    if a.id < b.id and a.pos[2] > 0.3 and b.pos[2] > 0.3 and b.state != TRAPPED \
+                    if a.id < b.id and a.pos[2] > 0.3 and b.pos[2] > 0.3 and b.state not in (TRAPPED, MANUAL) \
                             and not near_pads and np.linalg.norm(a.xy - b.xy) < C.SEPARATION:
                         targets[b.id][2] = max(targets[b.id][2], a.pos[2] + 0.4)
             # smooth set-points: never ask the controller for a jump bigger than it can fly safely
             for i, d in enumerate(self.drones):
+                if d.state == MANUAL:
+                    targets[i] = self.manual_target(d, dt)
+                    continue
                 dz = np.clip(targets[i][2] - d.pos[2], -0.25, 0.3)
                 dxy = targets[i][:2] - d.xy
                 n = np.linalg.norm(dxy)
@@ -212,8 +235,9 @@ class Mission:
                     continue          # motors off, beacon on
                 if d.state in (CHARGING, DONE) and d.pos[2] < 0.12:
                     continue
-                rpm, _, _ = self.ctrl[i].computeControlFromState(control_timestep=dt, state=self.obs[i],
-                                                                 target_pos=targets[i])
+                rpm, _, _ = self.ctrl[i].computeControlFromState(
+                    control_timestep=dt, state=self.obs[i], target_pos=targets[i], target_rpy=np.array([0, 0, d.yaw]),
+                    target_vel=d.vel if d.state == MANUAL else np.zeros(3))
                 action[i] = rpm
             self.obs, _, _, _, _ = self.env.step(action)
             self.t += dt; step += 1
@@ -223,7 +247,9 @@ class Mission:
                 self.gui_labels()
                 if step % 4 == 0:
                     self.sync_3d()
-                time.sleep(max(0, dt - (time.time() - t_wall))); t_wall = time.time()
+            if self.realtime:
+                t_wall = max(t_wall + dt, time.time() - 0.5)  # catch up after a slow step, never by more than 0.5 s
+                time.sleep(max(0.0, t_wall - time.time()))
             if writer is not None and self.t >= frame_t:
                 self.sync_3d()
                 frame_t += C.FRAME_DT if not self.search_done else C.FRAME_DT * 3   # fast-forward rescue phase
@@ -252,8 +278,104 @@ class Mission:
             os.system(f"ffmpeg -loglevel error -y -i {raw} -c:v libx264 -preset veryfast -pix_fmt yuv420p "
                       f"{os.path.join(self.out, 'halo_demo.mp4')} && rm {raw}")
         cv2.imwrite(os.path.join(self.out, "final_map.png"), R.render_map(self, base))
+        self.cams.close()
         self.env.close()
         return self.report(finished_at)
+
+    # ---------------- rescuer commands (dashboard) ----------------
+    def manual_target(self, d, dt):
+        """Rescuer stick -> safety filter -> position set-point. Auto-release after 2 s without input or on signal loss."""
+        if self.t - self.link.ctrl_t > 2.0 or not d.online:
+            self.release(d, "no input for 2 s" if d.online else "lost signal")
+            return d.pos.copy()
+        c = self.link.stick(d.id, self.t)
+        v_des = np.zeros(3)
+        if c:
+            d.yaw += float(c["yaw_rate"]) * dt
+            cy, sy = np.cos(d.yaw), np.sin(d.yaw)
+            v_des = np.array([c["vx"] * cy - c["vy"] * sy, c["vx"] * sy + c["vy"] * cy, c["vz"]], float)
+        others = [(o.pos, self.obs[o.id][10:13]) for o in self.drones if o is not d]
+        d.vel, d.blocked = safety.safe_velocity(v_des, d.pos, d.vel, safety.ranges(self.client, d.pos),
+                                                others, self.bounds, dt)
+        step = d.hold + d.vel * dt - d.pos
+        n = np.linalg.norm(step)
+        d.hold = d.pos + (step if n <= 0.25 else step * 0.25 / n)   # no wind-up when the filter holds it back
+        return d.hold.copy()
+
+    def _abandon(self, d):
+        """Drop a half-done photo check so the swarm searches that spot again."""
+        if d.inv and not d.inv["source"].reported:
+            s = d.inv["source"]
+            self.claimed.discard(s.id)
+            self.heat_zones.pop(s.id, None)
+            self.covered[np.hypot(self.GX - s.pos[0], self.GY - s.pos[1]) <= C.THERMAL_RADIUS] = False
+        d.inv = None
+
+    def takeover(self, d):
+        if d.state == TRAPPED or d.battery <= d.battery_needed_home() + 5:
+            self.event(f"Drone {d.id} can't be flown manually: {'trapped' if d.state == TRAPPED else 'battery too low'}", "warn")
+            return
+        for o in self.drones:
+            if o.state == MANUAL:
+                self.release(o)                    # one rescuer-flown drone at a time
+        self._abandon(d)
+        d.state, d.route, d.wps, d.zone, d.landing = MANUAL, [], [], [], False
+        d.hold, d.vel, d.yaw, d.blocked = d.pos.copy(), np.zeros(3), d.heading, False
+        self.link.ctrl_t, self.link.control = self.t + 3.0, None    # 5 s to the first stick input
+        self.event(f"Rescuer took manual control of drone {d.id} (anti-crash safety stays on)", "warn")
+        self.command.rebalance(self, f"drone {d.id} under manual control")
+
+    def release(self, d, why="released by rescuer"):
+        if d.state != MANUAL:
+            return
+        rejoin = bool(self.command.remaining_work(self)) and not d.recalled
+        d.state = SEARCH if rejoin else RETURN
+        d.route = [] if rejoin else d.home_route(self)
+        self.event(f"Drone {d.id} back to autonomous mode ({why})", "info")
+        if rejoin:
+            self.command.rebalance(self, f"drone {d.id} rejoined after manual control")
+
+    def recall(self, d):
+        if d.state in (DONE, TRAPPED):
+            self.event(f"Drone {d.id} can't be recalled: {'already at base' if d.state == DONE else 'trapped'}", "warn")
+            return
+        d.recalled = True
+        if d.state == CHARGING:
+            d.state = DONE
+        else:
+            self._abandon(d)
+            d.state, d.route, d.wps, d.zone = RETURN, d.home_route(self), [], []
+            self.command.rebalance(self, f"drone {d.id} recalled")
+        self.event(f"Rescuer recalled drone {d.id} to base", "warn")
+
+    def snapshot(self, d):
+        """Rescuer pressed 'Snapshot + AI check': high-res photo from the drone camera, AI check of what's in view."""
+        eye, target = P.drone_view(d.pos, d.heading)
+        rgb, seg = P.camera(self.client, eye, target, 640, 480)
+        dets = P.detect(seg, self.world.sources)
+        seen = [s for s in self.world.sources if s.bodies and np.isin(seg, s.bodies).any()]
+        path = os.path.join(self.out, "snapshots", f"drone{d.id}_{self.t:.0f}s.jpg")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        cv2.imwrite(path, P.draw_boxes(cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR), dets))
+        new = next((s for s in seen if s.id not in self.claimed and not s.reported), None)
+        if new:
+            self.claimed.add(new.id)
+            d.photograph(self, new, new.temp_c + self.rng.normal(0, 0.6), eye, target)
+            text = f"new heat source {new.id} found - AI result sent to the victim list"
+        elif seen:
+            text = "already reported: " + ", ".join(f"{s.id} ({P.LABELS[s.kind]})" for s in seen)
+        else:
+            text = "no person or heat source in view"
+        self.snapshots.append(dict(drone=d.id, t=round(self.t, 1), img=os.path.relpath(path, self.out), text=text))
+        self.event(f"Snapshot from drone {d.id}: {text}", "info")
+
+    def update_cams(self):
+        """Live camera frames, only for drones someone is watching (plus the one being flown). An offline
+        drone sends nothing, so the dashboard keeps its last frame."""
+        ids = [i for i in self.link.watch | {d.id for d in self.drones if d.state == MANUAL} if self.drones[i].online]
+        if ids:
+            self.cams.render(self, ids)
+        self.cam_meta.update(self.cams.collect())
 
     def sync_3d(self):
         for d, mk in zip(self.drones, self.markers):
@@ -367,9 +489,22 @@ if __name__ == "__main__":
     ap.add_argument("--out", default="results")
     ap.add_argument("--no-aftershock", action="store_true", help="disable the scripted building collapse")
     ap.add_argument("--max-time", type=float, default=C.MAX_TIME)
+    ap.add_argument("--teams", type=int, default=C.NUM_RESCUERS)
+    ap.add_argument("--area", help="JSON from the dashboard: poly + base (sim metres), origin (lat, lon), scale")
+    ap.add_argument("--live", action="store_true",
+                    help="real-time pace for the dashboard: rescuer verifies photos and can fly drones")
     a = ap.parse_args()
     C.MAX_TIME = a.max_time
-    m = Mission(a.drones, a.gui, a.out, video=not a.no_video, aftershock=not a.no_aftershock)
+    if a.area:
+        with open(a.area) as f:
+            spec = json.load(f)
+        C.AREA_POLY, C.ORIGIN, C.MAP_SCALE = spec["poly"], tuple(spec["origin"]), spec["scale"]
+        if spec.get("base"):
+            C.set_base(spec["base"])
+    if a.live:
+        C.VERIFY_DELAY, C.MAX_TIME = 45.0, max(a.max_time, 1800.0)   # give the rescuer time to look at photos
+    m = Mission(a.drones, a.teams, a.gui, a.out, video=not a.no_video, aftershock=not a.no_aftershock,
+                realtime=a.live)
     r = m.run()
     print("\n===== HALO MISSION SUMMARY =====")
     for k in ["drones", "mission_time_s", "area_searched_pct", "victims_found", "victims_total",
