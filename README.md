@@ -1,136 +1,168 @@
+<div align="center">
+
 # 🛰️ HALO
-### AI-Powered Autonomous Rescue Drone Swarm
-**H**azard-**A**ware **L**ifesaving **O**perations
+### Hazard-Aware Lifesaving Operations
+**An AI-powered autonomous drone swarm that finds trapped people after disasters and guides rescuers to them safely.**
 
-> One swarm for earthquakes, floods and collapsed buildings. HALO finds trapped people, even when only a hand is visible under debris. It maps safe routes for rescuers and keeps searching when a drone goes down, runs out of battery or loses signal.
+![Track](https://img.shields.io/badge/Track-Disaster%20Management-red)
+![Simulation](https://img.shields.io/badge/Simulation-PyBullet-blue)
+![AI](https://img.shields.io/badge/AI-Multi--Agent%20%7C%20YOLOv8-purple)
+![Status](https://img.shields.io/badge/Stage-Simulation%20→%20Reality-orange)
+![License](https://img.shields.io/badge/License-Open%20Source-green)
 
-**Track:** Disaster Management (Robotics + AI) · Physical AI Hackathon: From Simulation to Reality
+*Physical AI Hackathon: From Simulation to Reality · Disaster Management (Robotics + AI)*
 
-🎥 **Demo video:** _link coming soon_  ·  📄 **Concept note:** _coming soon_
+[Demo video](#-demo) · [Results](#-results) · [Features](#-features) · [Architecture](#-architecture) · [Quick start](#-quick-start) · [Sim-to-real](#-from-simulation-to-reality)
+
+</div>
 
 ---
 
 ## 🚨 The problem
 
-In the first **72 hours** after a disaster, every minute counts for people trapped under rubble or cut off by floodwater. Rescue teams today:
+The first **72 hours** after an earthquake, flood or building collapse decide who survives. Yet search and rescue is still mostly manual:
 
-- search large areas **manually**, zone by zone, which is slow and puts rescuers at risk
-- enter structures **without knowing** if they are about to collapse or if there is a radiation hazard
-- lose **communication** when mobile networks go down
-- miss victims who are **mostly buried**, with only a hand or foot visible
-- have no single live map of **where victims are and how to reach them safely**
+- Teams search **zone by zone on foot**, which is slow and dangerous.
+- Survivors are often **mostly buried**, with only a hand or foot visible, or not visible at all.
+- Rescuers enter areas **without knowing** about radiation, unstable structures or the safest way in.
+- **Mobile networks fail**, cutting communication when it matters most.
 
-## 💡 Our solution
+## 💡 The solution
 
-HALO is a **swarm of autonomous AI drones**. A rescuer marks an area on the map. The swarm splits it into zones, searches every zone in parallel, finds victims, checks hazards and plots the **safest route** for the rescue team. All of it shows up on a live dashboard.
+**HALO turns a fleet of drones into a coordinated search team.** A rescuer draws the disaster area on a map and presses **Search for humans**. The swarm splits the area, searches it in parallel, and confirms every heat signal with AI. It then plots a **hazard-free route** to each victim and dispatches ground teams, most urgent first. Everything appears live on a dashboard that runs on a laptop or as an app on a phone.
 
 ```
-Rescuer marks area ──► Swarm splits into zones ──► Each drone searches its zone
-        ▲                                                   │
-        │                                                   ▼
-  Live dashboard  ◄── Safe route planned ◄── Heat signal → photo → AI check → rescuer verifies
+ Draw area ─► Fleet pre-flight check ─► Swarm splits zones ─► Parallel search
+                                                                   │
+ Teams reach victims ◄─ Safe routes planned ◄─ AI verifies ◄─ Heat / phone signal
 ```
 
 ---
 
-## ✨ Key features
+## 🎬 Demo
 
-| # | Feature | What it does |
-|---|---------|--------------|
-| 1 | 🧩 **Smart zone splitting** | Rescuer marks an area, and the swarm divides it evenly so each drone owns one zone. |
-| 2 | 🔁 **Self-healing swarm** | If a drone fails, runs low on battery or gets trapped, the remaining drones **re-split its zone automatically**. Nothing is left unsearched. |
-| 3 | 🔋 **Auto return-to-charge & handover** | Low battery → drone flies back to the charging base, recharges and rejoins, then the swarm rebalances. |
-| 4 | 🌡️ **Thermal victim detection** | Drones scan for body-heat signatures. |
-| 5 | 📸 **AI photo verification (human in the loop)** | On any unusual heat signal, the drone **takes a photo** and AI checks for a **whole person or a partial body part** (hand, arm, foot, face) sticking out of debris. **No heat signal is ever thrown away**: uncertain ones are sent as *"possible victim, please verify"*. A missed victim is treated as far worse than a false alarm. |
-| 6 | 📶 **Phone-signal victim locating** | Detects Wi-Fi / Bluetooth signals from trapped people's phones to estimate their position, even with **no line of sight**. |
-| 7 | 🚦 **Victim priority scoring** | Ranks victims by urgency (body heat, AI confidence, nearby hazards) so rescuers reach the most critical first. |
-| 8 | ☢️ **Hazard sensing** | Radiation and structural-integrity scanning flag dangerous zones **before** rescuers enter. |
-| 9 | 🗺️ **Safe-route planning** | Hazard-weighted path planning for rescuers. If the direct route is unsafe, HALO **reroutes** and still marks the victim's location. |
-| 10 | 🆘 **Drone distress beacon** | If a drone is trapped (e.g. inside a building that collapses), it broadcasts an **SOS with its last known position** so the team can recover it, and the swarm takes over its zone. |
-| 11 | 🧠 **Edge autonomy (multi-agent AI)** | A central command AI talks to rescuers, and **each drone runs its own AI agent**. If debris cuts the signal, drones keep working on their own and sync when they reconnect. |
-| 12 | 🚧 **Obstacle & collision avoidance** | Drones avoid buildings, debris and each other. |
-| 13 | 📦 **Relief drops** | Light payloads (medicine, water pouches, a radio) delivered to victims waiting for rescue. Especially useful in **floods**. |
-| 14 | 🖥️ **Live rescuer dashboard** | Map with thermal red zones, live AI verdicts, victims with thermal + photo, hazards, drones, rescue teams and safe routes. |
-| 15 | 🚑 **Rescue team dispatch** | Command AI sends ground teams to victims by priority along safe routes. Uncertain photos are verified by a human first. |
+| Simulation (PyBullet) + live rescuer map | |
+|---|---|
+| 🎥 Full recording | [`simulation/results/halo_demo.mp4`](simulation/results/halo_demo.mp4) |
+| 📹 Pitch video | _link coming soon_ |
+
+![HALO rescuer map](simulation/results/final_map.png)
+
+---
+
+## 📊 Results
+
+Simulated earthquake-hit city block (~100 m, at 1:8 scale): **20 hidden victims (7 partly buried, 3 fully buried) · 3 heat decoys · 3 rescue teams**. HALO supports **any number of drones, from 1 to N**. This benchmark run used a swarm of 6.
+
+<div align="center">
+
+| 🎯 Victims found | 🚑 Reached by teams | 🗑️ Signals discarded | ⚡ vs single drone |
+|:---:|:---:|:---:|:---:|
+| **20 / 20** | **20 / 20** | **0** | **3.2× faster** |
+
+</div>
+
+| Metric | Result |
+|---|---|
+| Partial-body victims found (hand / foot / head) | **7 / 7** |
+| Buried victims found by phone signal only | **3 / 3** |
+| Heat decoys | **3 / 3** sent to a rescuer and dismissed from the photo |
+| Area searched | **100%** in 104 s, despite one drone trapped and one recharging |
+| Avg. time from detection to a team reaching the victim | **70 s** |
+| Unsafe direct routes detected and rerouted | **3** |
+| Phone-signal location error | **0.1 – 0.64 m** |
+
+**Swarm vs single drone** (same scene): full search **98 s vs 298 s**, all visible victims found **64 s vs 203 s**.
+
+---
+
+## ✨ Features
+
+### 🤖 Autonomous swarm intelligence
+| Feature | Description |
+|---|---|
+| **Multi-agent AI** | A central **Command AI** coordinates the mission, and every drone runs its **own AI agent**, so each drone keeps working if the link drops. |
+| **Scales to any fleet size** | Add drones from 1 to N. The area is divided evenly and matched to drones optimally (Hungarian algorithm), and new drones can join mid-mission. |
+| **Self-healing swarm** | When a drone is lost, trapped, recharging or added mid-mission, unsearched areas are **re-split automatically**. |
+| **Auto return-to-charge** | Each drone calculates when it must fly home, recharges, and rejoins the search. |
+| **Collision-free flight** | A **SafetyLayer** on every drone: obstacle sensing, drone-to-drone avoidance (ORCA), geofence, emergency landing. It stays on even under manual control. |
+| **Edge autonomy + mesh relay** | Out of radio range, drones relay through each other. In dead zones they search on their own and sync when they reconnect. |
+| **Drone SOS beacon** | A trapped or crashed drone broadcasts its last position for recovery. The swarm takes over its zone. |
+
+### 🔍 Victim detection
+| Feature | Description |
+|---|---|
+| **Thermal detection** | Every unusual heat signal is investigated. |
+| **AI photo verification** | The drone photographs each heat signal. **YOLOv8** checks for a whole person **or a partial body part** sticking out of rubble. |
+| **Never discards a signal** | Low-confidence results go to a rescuer to verify. A missed victim is treated as far worse than a false alarm. |
+| **Phone-signal locating** | Finds **buried survivors with no heat or visual contact** from their phones' Wi-Fi/Bluetooth signals. |
+| **Priority scoring** | Ranks victims by urgency (certainty, how trapped they are, hazards nearby, body temperature). |
+
+### 🗺️ Rescue guidance
+| Feature | Description |
+|---|---|
+| **Hazard mapping** | Radiation, unstable structures, rubble and no-signal zones. |
+| **Safe-route planning** | Hazard-weighted routes for rescuers. Unsafe direct routes are detected and **rerouted**. |
+| **Rescue team dispatch** | Ground teams are sent to the most urgent victims along safe routes. |
+| **Relief drops** | Light payloads (medicine, water, radio) for victims waiting for rescue, especially in floods. |
+
+### 🖥️ Rescuer dashboard (web + installable phone app)
+| Feature | Description |
+|---|---|
+| **Fleet setup** | Add any number of drones. Each runs a **live pre-flight check** (link, flight controller, motors, battery, RGB camera, thermal camera, obstacle sensors, mesh radio) until it shows **🟢 Ready to fly**. |
+| **Real map** | Street and satellite maps of anywhere in the world, with place search. |
+| **Search for humans** | Draw the disaster area and launch. Watch zones, **live flight paths**, thermal red zones and **safe routes** draw on the map. |
+| **AI verdicts** | Thermal zones show *"AI checking…"* until they turn into confirmed person / body part / not a person, with the thermal image and photo. |
+| **📹 Live camera wall** | Watch one, several or all online drones at once (normal or thermal view), with AI boxes on people. |
+| **🎮 Manual takeover** | Take control of any drone with keyboard, touch joystick or gamepad. **Anti-crash safety stays on.** |
+| **Human-in-the-loop** | Confirm or dismiss victims, send teams, recall drones. |
+| **Alerts & replay** | SOS, new victims and verification requests, plus a full mission replay with a timeline. |
+| **Installable app (PWA)** | Add to the home screen on Android or iPhone. Works on laptops, tablets and phones. |
+| **Local-first** | All data stays on the rescue team's device. No cloud needed in the field. |
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-                    ┌─────────────────────────────┐
-   Rescuer  ◄────►  │   HALO Command AI (central) │  ◄────►  Live Dashboard
-                    │ zones · alerts · re-tasking │
-                    └──────────────┬──────────────┘
-                     mesh / radio  │  (may drop out)
-          ┌────────────────┬───────┴────────┬────────────────┐
-     ┌────▼────┐      ┌────▼────┐      ┌────▼────┐      ┌────▼────┐
-     │ Drone 1 │      │ Drone 2 │      │ Drone 3 │      │ Drone N │
-     │ AI agent│      │ AI agent│      │ AI agent│      │ AI agent│
-     └─────────┘      └─────────┘      └─────────┘      └─────────┘
-   Perceive: thermal · camera · phone signal · radiation · structure · obstacles
-   Decide:   search path · victim check & scoring · battery · avoid collisions
-   Act:      fly · photograph · return to charge · SOS beacon · drop relief · report
+                         ┌──────────────────────────────┐
+  Rescuer (web / phone) ◄►│  HALO Command AI  (base)     │
+                         │  zones · priorities · teams  │
+                         └──────────────┬───────────────┘
+                          mesh radio    │   (may drop out)
+          ┌──────────────┬──────────────┼──────────────┬──────────────┐
+     ┌────▼────┐    ┌────▼────┐    ┌────▼────┐    ┌────▼────┐    ┌────▼────┐
+     │ Agent 1 │    │ Agent 2 │    │ Agent 3 │    │ Agent 4 │    │ Agent N │
+     └────┬────┘    └─────────┘    └─────────┘    └─────────┘    └─────────┘
+          │  Perceive → Decide → SafetyLayer → Act
+          ▼
+   Thermal · RGB camera · Wi-Fi/BLE scanner · rangefinders · radiation sensor
 ```
+
+| Layer | Responsibility |
+|---|---|
+| `halo/` | Hardware-independent AI: agents, Command AI, SafetyLayer, planning, perception, comms |
+| `hal/` | Hardware abstraction: **PyBullet** backend now, **PX4 / MAVSDK** backend for real drones |
+| `simulation/` | Disaster scene, mission runner, video and metrics |
+| `dashboard/` | Rescuer web app + local server |
 
 ---
 
-## 🧪 Simulation
-
-Built on **PyBullet** with **gym-pybullet-drones** quadcopter physics. Details and run instructions are in [`simulation/`](simulation/).
-
-**Demo scenario:** earthquake hits a city block → rescuer marks the area → 6 drones split into zones → heat signals photographed and AI-checked → one drone returns to recharge and the swarm self-heals → a drone gets trapped and sends SOS → signal drops and drones keep working on their own → 3 rescue teams follow safe routes to all 20 victims, most urgent first.
-
-## 📊 Results
-
-From the PyBullet simulation: **6 drones**, **20 hidden victims** (7 only partly visible, 3 fully buried), **3 heat decoys** and **3 ground rescue teams** in an earthquake-hit block. It's a 12 m scale model of a ~100 m block. Reproduce it with `python simulation/run_mission.py`.
-
-| Metric | Result |
-|--------|--------|
-| Victims found | **20 / 20** |
-| Partial-body victims found (hand, foot, head) | **7 / 7** |
-| Buried victims found only by phone signal | **3 / 3** |
-| Heat signals discarded by AI | **0**. All 3 decoys went to a rescuer, who dismissed them from the photo |
-| Victims reached by rescue teams | **20 / 20** |
-| Avg time from detection to a rescue team reaching the victim | **70 s** |
-| Area searched | **100%** in 104 s, despite 1 drone trapped and 1 recharging |
-| Unsafe direct routes caught and rerouted | **3** (radiation zone / collapsed building) |
-| Phone location error | **0.1 – 0.64 m** |
-
-**Swarm vs single drone** (same scene, no aftershock):
-
-| | 6-drone swarm | 1 drone |
-|---|---|---|
-| Time to search the whole area | **98 s** | 298 s |
-| Time to find all visible victims | **64 s** | 203 s |
-
-→ The swarm finds every victim about **3.2× faster**.
-
-![Rescuer map](simulation/results/final_map.png)
-
-🎬 Simulation recording: [`simulation/results/halo_demo.mp4`](simulation/results/halo_demo.mp4)
-
-## 🖥️ Rescuer dashboard
-
-A live web dashboard for the rescue team that also installs as a phone app. It runs and stores everything locally (`simulation/results/`), with no cloud and no API keys.
+## 🚀 Quick start
 
 ```bash
-python dashboard/serve.py            # opens http://localhost:8000/dashboard/ and prints the address for phones
-python dashboard/serve.py --replay   # replay the last mission
+git clone https://github.com/iamjyotirmayroy-art/HALO.git && cd HALO
+pip install -r simulation/requirements.txt     # PyBullet compiles on first install
+
+python simulation/run_mission.py --gui         # run a mission in the 3D simulator
+python dashboard/serve.py                      # open the rescuer dashboard → http://localhost:8000/dashboard/
 ```
 
-**Search for humans in 5 clicks:** search a place (e.g. *Mumbai*) → **📍 Set rescue base** → **🔍 Search for humans** → draw the disaster area (rectangle or polygon), pick the number of drones and rescue teams → **🚀 Launch**. The server fits the simulation onto that area and starts it. Then watch it live:
+More options: `simulation/README.md`.
 
-| | What you get |
-|---|---|
-| 🗺️ **Real map + place search** | OpenStreetMap streets and Esri satellite layers, opens on India, zoom anywhere. Place search uses the free OpenStreetMap Nominatim geocoder |
-| 🧩 **Live mission on the map** | Zones split in each drone's colour, filling in as they're searched · each drone's **flight path draws as it flies** · **🔥 thermal red zones** with *"🤖 AI checking…"* → AI verdict · **green safe rescuer routes** from the base to each victim (unsafe direct routes as red dashed lines, with the reason) · rescue teams walking their routes · a **mission summary card** at the end |
-| 🧍 **Victims & AI verification** | List sorted by priority with thermal image, photo with the AI's boxes, confidence, temperature, status and team. Click one to **✔ Confirm person / ✖ Not a person** or **🚑 Send team**. Filters: not rescued yet / needs verification / buried (phone signal) |
-| 🛩 **Drones** | Battery, state, signal (online / mesh relay / offline-autonomous), SOS. Click one for details, trail on/off and **↩ Recall to base** |
-| 📹 **Live camera wall** | Watch one, several or *All online* drones in an auto grid (1 / 2 / 2×2 / 3×2). Each tile shows name, state, battery and signal, has a **Normal / Thermal** toggle, AI boxes on people or body parts, and flashes red when it sees heat. Tile buttons: **📸 Snapshot + AI check**, **📍 Show on map**, **🎮 Take control**. Offline drones show *NO SIGNAL* with their last frame; a trapped drone shows a red SOS tile. Watching never changes what a drone does. Cameras are rendered only for drones being watched (320×240, up to 4 fps), in background processes, so watching never slows the mission |
-| 🎮 **Manual drone takeover** | Fly a drone with the keyboard (**W/A/S/D** move, **Q/E** rotate, **R/F** up/down), the on-screen joysticks or a gamepad, with its live camera. The rest of the swarm re-splits its zone. **Anti-crash safety stays on:** your input is only a desired velocity, and obstacle avoidance, drone avoidance and the geofence still apply (*"⚠ Obstacle ahead"* shows when it steps in). The battery failsafe still forces a return home. **Release control**, or 2 s without input, hands it back to the AI and the swarm re-balances |
-| 🚨 **Alerts, layers, replay** | Banner + sound (mute toggle) for drone SOS, heat signals being checked, photos needing verification and unsafe routes. Layer toggles for thermal zones, trails, zones, safe routes, radio links and hazards. Event feed and **mission replay with a timeline scrubber** |
-| 📱 **Phone app (PWA)** | *Add to Home Screen* on Android and iPhone opens it full screen like an app. On a phone the map is full screen, panels become bottom tabs (Alerts, Drones, Victims, Teams, Cameras), the camera wall becomes a swipe carousel and the joysticks are touch-friendly. `serve.py` listens on the local network, so phones on the same Wi-Fi can open it |
+### 🖥️ Using the rescuer dashboard
+
+Search a place (e.g. *Mumbai*) → **📍 Set rescue base** → **🔍 Search for humans** → draw the area (rectangle or polygon), pick the number of drones and rescue teams → **🚀 Launch**. The server fits the simulation onto that area and starts it, and everything streams live onto the map.
 
 | Draw the area | Live mission | Victim check |
 |---|---|---|
@@ -140,43 +172,66 @@ python dashboard/serve.py --replay   # replay the last mission
 
 <sub>Screenshots were taken offline, so the street and satellite map tiles are missing. They load normally with an internet connection.</sub>
 
-**Backend API** (`dashboard/serve.py`, Python standard library only): `GET /` dashboard · `POST /api/mission` · `POST /api/verify` · `POST /api/command` · `POST /api/control` · `POST /api/watch` · `GET /api/cam/<N>` (MJPEG stream, e.g. for VLC; the dashboard itself polls the JPEG frames so it never runs out of browser connections). Commands are written to `simulation/results/commands.json`, which the running simulation polls and acts on (drone commands travel over the mesh, so an offline drone gets them when it reconnects).
+- **Manual takeover:** **W/A/S/D** move, **Q/E** rotate, **R/F** up/down, or the on-screen joysticks or a gamepad. Your input is only a desired velocity. The anti-crash filter (rangefinder rays, 0.4 m obstacle margin, 0.5 m drone separation, geofence) and the battery failsafe still apply, and *"⚠ Obstacle ahead"* shows when it steps in. Release control, or 2 s without input, hands the drone back to the AI and the swarm re-balances.
+- **Camera wall:** cameras are rendered only for drones being watched (320×240, up to 4 fps), in background processes, so watching never changes or slows the mission.
+- **Phones:** `serve.py` listens on the local network and prints `http://<laptop-ip>:8000/dashboard/`. A full app install (service worker) needs HTTPS or `localhost`; serve with `--cert cert.pem --key key.pem` for that. Plain HTTP can still be added to the home screen.
+- **Backend API** (`dashboard/serve.py`, Python standard library only): `GET /` · `POST /api/mission` · `POST /api/verify` · `POST /api/command` · `POST /api/control` · `POST /api/watch` · `GET /api/cam/<N>` (MJPEG). Commands go to `simulation/results/commands.json`, which the running simulation polls. Drone commands travel over the mesh, so an offline drone gets them when it reconnects.
 
-> Phones only allow a full app install (service worker) over HTTPS or on `localhost`. Over plain `http://<laptop-ip>:8000` you can still add it to the home screen. For the full install, serve with a certificate: `python dashboard/serve.py --cert cert.pem --key key.pem`.
+---
 
 ## ✅ Tests
 
 ```bash
-pip install -r simulation/requirements.txt
-python -m pytest tests          # area fitting, command queue, anti-crash safety filter, area mask, base placement
+python -m pytest tests     # area fitting, command queue, anti-crash filter, area mask, base placement
 ```
 
-The anti-crash tests fly a simulated drone at full speed into a wall and at another drone, and check that it always stops at the safety margin (0.4 m to obstacles, 0.5 m to drones) and stays inside the altitude geofence. The dashboard was tested end to end in a headless browser: search a place → set base → draw the area → launch → camera wall and snapshot → manual flight and release → photo verification → mission summary.
+The anti-crash tests fly a drone at full speed into a wall and at another drone, and check that it always stops at the safety margin and stays inside the altitude geofence. The dashboard was tested end to end in a headless browser: search a place → set base → draw area → launch → camera wall + snapshot → manual flight + release → photo verification → mission summary.
+
+---
 
 ## 🔧 From simulation to reality
 
 | Simulated | Real hardware |
-|-----------|---------------|
-| Quadcopter model (Crazyflie in gym-pybullet-drones) | Quadcopter with flight controller (PX4 / ArduPilot) |
-| Simulated thermal camera | Thermal camera module (e.g. FLIR Lepton) |
-| Simulated RGB photo + AI check | Onboard camera + person / body-part detection model |
-| Simulated phone-signal sensing | Wi-Fi / BLE scanner module (e.g. ESP32) |
-| Simulated radiation field | Geiger counter module |
-| Drone-to-drone comms | ESP-NOW / LoRa mesh radio |
-| Onboard AI agent | Raspberry Pi / Jetson Nano companion computer |
-| Charging base | Landing pad with charging contacts |
+|---|---|
+| Crazyflie quadcopter model | Quadcopter with PX4 / ArduPilot flight controller |
+| Rendered RGB camera + YOLOv8 | Onboard camera + YOLOv8 on a Jetson / Raspberry Pi |
+| Simulated thermal camera | FLIR Lepton thermal module |
+| Simulated rangefinders | ToF / LiDAR obstacle sensors |
+| Phone-signal model | ESP32 Wi-Fi / BLE scanner |
+| Radiation field | Geiger counter module |
+| Mesh network model | ESP-NOW / LoRa mesh radio |
+| Charging pads | Landing pads with charging contacts |
+
+The control AI talks to drones only through the `hal/` interface, so **the same code flies simulated and real drones**.
+
+---
+
+## 🧭 Development status
+
+| Component | Status |
+|---|---|
+| Swarm AI, zone splitting, self-healing, battery return, SOS, mesh relay | ✅ Done (simulation) |
+| Thermal + phone-signal detection, priority scoring, safe routes, rescue teams | ✅ Done (simulation) |
+| Rescuer dashboard: map, thermal zones, victims, alerts, replay | ✅ Done |
+| SafetyLayer with ORCA + rangefinder sensing, 0-collision test suite | 🚧 In progress |
+| YOLOv8 photo verification (people + body parts) | 🚧 In progress |
+| Dashboard: Search for humans, live flight paths, victim verification, camera wall, manual takeover, alerts, PWA | ✅ Done |
+| Dashboard: fleet setup + live pre-flight check | 🚧 In progress |
+| Relief drops, real-hardware backend (PX4) | 🔜 Planned |
+
+> **Note on the simulation:** photos and thermal frames are rendered from the 3D scene. The aftershock is a scripted event, and charging is sped up for the demo.
 
 ---
 
 ## 🔭 Future scope
+CO₂ breath detection under rubble · acoustic sensing for tapping and voices · aftershock and collapse prediction · two-way voice beacon for trapped victims · cloud sync for multiple rescue agencies.
 
-CO₂ breath detection under rubble · acoustic sensing (tapping / voices) · aftershock & collapse prediction · two-way voice beacon for trapped victims · cloud dashboard for multiple rescue teams.
-
-## 🙏 Credits
-
-- [gym-pybullet-drones](https://github.com/utiasDSL/gym-pybullet-drones) by the Learning Systems & Robotics Lab (University of Toronto), used as the drone physics base, MIT License.
-- [PyBullet](https://pybullet.org) physics engine.
+## 🙏 Acknowledgements
+- [gym-pybullet-drones](https://github.com/utiasDSL/gym-pybullet-drones) (University of Toronto, MIT License): drone physics and flight control
+- [PyBullet](https://pybullet.org) physics engine · [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics) (AGPL-3.0)
+- [Leaflet](https://leafletjs.com) · map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors · imagery © Esri
 
 ## 👥 Team
+_Coming soon._
 
-_Team members coming soon._
+<div align="center"><sub>Built to save lives in the first 72 hours.</sub></div>
