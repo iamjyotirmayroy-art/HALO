@@ -23,6 +23,7 @@ from agents import DroneAgent, CommandAI, SEARCH, INVESTIGATE, RETURN, CHARGING,
 import perception as P
 import render as R
 import safety
+import vision
 from rescue import Dispatcher
 from rescuer_link import RescuerLink
 from cameras import CameraPool
@@ -354,20 +355,20 @@ class Mission:
         """Rescuer pressed 'Snapshot + AI check': high-res photo from the drone camera, AI check of what's in view."""
         eye, target = P.drone_view(d.pos, d.heading)
         rgb, seg = P.camera(self.client, eye, target, 640, 480)
-        dets = P.detect(seg, self.world.sources)
-        seen = [s for s in self.world.sources if s.bodies and np.isin(seg, s.bodies).any()]
+        bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+        dets = vision.detect(bgr)
+        seen = [s for s in self.world.sources if s.bodies and np.isin(seg, s.bodies).any()]   # heat sources in view
         path = os.path.join(self.out, "snapshots", f"drone{d.id}_{self.t:.0f}s.jpg")
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        cv2.imwrite(path, P.draw_boxes(cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR), dets))
+        cv2.imwrite(path, P.draw_boxes(bgr, dets))
+        text = "YOLOv8: " + (", ".join(f"{label} {conf:.0%}" for label, conf, _ in dets) or "no person detected")
         new = next((s for s in seen if s.id not in self.claimed and not s.reported), None)
         if new:
             self.claimed.add(new.id)
             d.photograph(self, new, new.temp_c + self.rng.normal(0, 0.6), eye, target)
-            text = f"new heat source {new.id} found - AI result sent to the victim list"
+            text += f" · new heat source {new.id} sent to the victim list"
         elif seen:
-            text = "already reported: " + ", ".join(f"{s.id} ({P.LABELS[s.kind]})" for s in seen)
-        else:
-            text = "no person or heat source in view"
+            text += " · heat sources in view already reported: " + ", ".join(s.id for s in seen)
         self.snapshots.append(dict(drone=d.id, t=round(self.t, 1), img=os.path.relpath(path, self.out), text=text))
         self.event(f"Snapshot from drone {d.id}: {text}", "info")
 

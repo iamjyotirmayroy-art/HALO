@@ -48,7 +48,8 @@ class Exporter:
                           temp=v.get("measured_temp"), team=v.get("rescue_team"),
                           reached_t=v.get("reached_t"), response_s=v.get("response_s"),
                           route_status=(v.get("route") or {}).get("status"),
-                          route_note=(v.get("route") or {}).get("note")))
+                          route_note=(v.get("route") or {}).get("note"), model=v.get("model"),
+                          detections=v.get("detections")))
         routes = {k: dict(safe=r["safe_path"], direct=r["direct_path"] if r["direct_unsafe"] else [],
                           status=r["status"], reason=r["reason"]) for k, r in s.routes.items()}
         zones = np.full((C.N, C.N), ".")

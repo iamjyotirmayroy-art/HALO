@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pybullet as p
 import config as C
+import humans
 
 
 def to_cell(xy):
@@ -138,29 +139,16 @@ class World:
                          S("H2", "animal", np.array([3.2, 3.6]), 38.5, False),
                          S("H3", "fire", np.array([9.8, 11.6]), 95.0, False)]
         self.sources = [s for s in self.sources if self.area[to_cell(s.pos)]]   # only the marked area
+        rng = np.random.default_rng(C.SEED + 1)               # same people in every copy of the scene (camera workers)
         for s in self.sources:
-            s.bodies = self._spawn_source(s)
+            s.bodies = self._spawn_source(s, rng)
 
     # ------------------------------------------------------------------
-    def _spawn_source(self, s):
-        x, y = s.pos
-        skin = [0.87, 0.67, 0.53, 1]
-        if s.kind == "person":       # lying person: torso + head
-            return [self._box((x - 0.28, y - 0.09, x + 0.28, y + 0.09), 0.1, [0.2, 0.3, 0.7, 1]),
-                    self._sphere((x + 0.36, y), 0.08, skin, z=0.08)]
-        if s.kind == "hand":         # arm sticking out of rubble
-            return [self._box((x - 0.04, y - 0.04, x + 0.04, y + 0.04), 0.32, skin),
-                    self._sphere((x, y), 0.06, skin, z=0.34)]
-        if s.kind == "foot":
-            return [self._box((x - 0.12, y - 0.05, x + 0.12, y + 0.05), 0.12, [0.25, 0.2, 0.15, 1])]
-        if s.kind == "head":
-            return [self._sphere((x, y), 0.09, skin, z=0.22)]
-        if s.kind == "fire":
-            return [self._box((x - 0.2, y - 0.2, x + 0.2, y + 0.2), 0.15, [0.15, 0.15, 0.15, 1]),
-                    self._cyl(s.pos, 0.12, 0.35, [1.0, 0.45, 0.05, 1], z0=0.15)]
-        if s.kind == "animal":
-            return [self._box((x - 0.18, y - 0.07, x + 0.18, y + 0.07), 0.14, [0.55, 0.35, 0.15, 1])]
-        return []                    # buried: nothing visible
+    def _spawn_source(self, s, rng):
+        """Body-part model of a victim (debris over the buried part), a decoy, or nothing if fully buried."""
+        if s.kind in humans.KINDS:
+            return humans.build(self.client, s.kind, s.pos, rng.uniform(0, 2 * np.pi), rng)[0]
+        return humans.decoy(self.client, s.kind, s.pos, rng) if s.kind in ("fire", "animal") else []
 
     def _box(self, r, h, rgba, yaw=0.0):
         x0, y0, x1, y1 = r
@@ -175,10 +163,6 @@ class World:
         he = [(x1 - x0) / 2 + 0.01, (y1 - y0) / 2 + 0.01, 0.06]
         vis = p.createVisualShape(p.GEOM_BOX, halfExtents=he, rgbaColor=rgba, physicsClientId=self.client)
         p.createMultiBody(0, -1, vis, [(x0 + x1) / 2, (y0 + y1) / 2, z], physicsClientId=self.client)
-
-    def _sphere(self, xy, r, rgba, z=0.0):
-        vis = p.createVisualShape(p.GEOM_SPHERE, radius=r, rgbaColor=rgba, physicsClientId=self.client)
-        return p.createMultiBody(0, -1, vis, [xy[0], xy[1], z], physicsClientId=self.client)
 
     def _cyl(self, xy, r, h, rgba, z0=0.0):
         vis = p.createVisualShape(p.GEOM_CYLINDER, radius=r, length=h, rgbaColor=rgba, physicsClientId=self.client)

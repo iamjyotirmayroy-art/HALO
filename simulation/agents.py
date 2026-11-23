@@ -179,13 +179,13 @@ class DroneAgent:
     def photograph(self, sim, s, temp, eye, target):
         """Photo + thermal of heat source s, AI check, report to Command AI (buffered if offline)."""
         path = f"{sim.out}/photos/{s.id}_drone{self.id}.png"
-        P.take_photo(sim.client, eye, target, sim.world.sources, path)
+        dets = P.take_photo(sim.client, eye, target, sim.world.sources, path)
         s.reported = True
         trapped = s.kind in ("hand", "foot", "head") or sim.world.inside_weak(s.pos)
         self.report(sim, dict(type="victim", id=s.id, pos=s.pos.round(2).tolist(), photo=path,
                               thermal=path.replace(".png", "_thermal.png"), drone=self.id, t=round(sim.t, 1),
                               trapped=trapped, source="thermal+camera", is_human=s.is_human, kind=s.kind,
-                              **P.ai_check(s, temp, sim.rng)))
+                              **P.ai_check(dets, temp)))
 
     def home_route(self, sim):
         return flight_path(sim.fly_blocked, self.xy, C.stage(self.pad)) + [self.pad]

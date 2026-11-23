@@ -2,17 +2,15 @@
 Perception: thermal scan, photo capture + AI victim check, phone-signal locating,
 and victim priority scoring.
 
-NOTE ON THE AI CHECK: in this simulation the photo is a real rendered camera image,
-but the person/body-part classifier is a calibrated stand-in that returns confidence
-scores with realistic noise for each kind of heat source. On hardware it is replaced
-by a detector (e.g. YOLOv8) trained on whole people AND partial body parts (hands,
-arms, feet, heads) in rubble. The decision policy below is the same either way.
+AI check: Ultralytics YOLOv8 (vision.py) runs on every rendered drone photo, fine-tuned on this simulator's
+images to find whole people and partial body parts (hand, foot, head). The decision policy is the same on hardware.
 """
 import os
 import numpy as np
 import pybullet as p
 import cv2
 import config as C
+import vision
 
 
 # ---------------- thermal ----------------
@@ -65,57 +63,44 @@ def thermal(rgb, seg, sources):
     return out, hot
 
 
-def detect(seg, sources):
-    """Stand-in person / body-part detector: a box around every human (or part) visible in the frame."""
-    out = []
-    for s in sources:
-        if s.is_human and s.bodies:
-            ys, xs = np.nonzero(np.isin(seg, s.bodies))
-            if len(xs):
-                out.append((s, (int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max()))))
-    return out
-
-
 def draw_boxes(bgr, dets):
-    for s, (x0, y0, x1, y1) in dets:
-        cv2.rectangle(bgr, (x0 - 3, y0 - 3), (x1 + 3, y1 + 3), (0, 255, 0), 2)
-        cv2.putText(bgr, f"{LABELS[s.kind].replace('body part: ', '')} {CONF_MEAN[s.kind]:.0%}", (x0 - 3, max(12, y0 - 7)),
+    """Draw YOLOv8 detections (label, confidence, box) on a BGR image."""
+    for label, conf, (x0, y0, x1, y1) in dets:
+        cv2.rectangle(bgr, (x0, y0), (x1, y1), (0, 255, 0), 2)
+        cv2.putText(bgr, f"{label.replace('body part: ', '')} {conf:.0%}", (x0, max(12, y0 - 6)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 1, cv2.LINE_AA)
     return bgr
 
 
 def take_photo(client, eye, target, sources, path, size=320):
-    """Photo + matching thermal frame for the rescuer, with the AI's boxes drawn on the photo."""
-    rgb, seg = camera(client, eye, target, size, size)
+    """Photo + matching thermal frame for the rescuer. YOLOv8 runs on the photo; its boxes are drawn on it.
+    Returns the detections."""
+    rgb, seg = camera(client, eye, target, size, size, fov=75)
+    bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+    dets = vision.detect(bgr)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    cv2.imwrite(path, draw_boxes(cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR), detect(seg, sources)))
+    cv2.imwrite(path, draw_boxes(bgr, dets))
     cv2.imwrite(path.replace(".png", "_thermal.png"), thermal(rgb, seg, sources)[0])
+    return dets
 
 
 # ---------------- AI victim check ----------------
-LABELS = {"person": "person", "hand": "body part: hand/arm", "foot": "body part: foot/leg",
-          "head": "body part: head", "fire": "hot debris / fire", "animal": "animal"}
-CONF_MEAN = {"person": 0.93, "hand": 0.68, "foot": 0.61, "head": 0.72, "fire": 0.06, "animal": 0.24}
-
-
-def ai_check(source, measured_temp, rng):
+def ai_check(dets, measured_temp):
     """
-    Returns what the AI thinks it sees and what goes to the rescuer.
-    Policy: NO heat signal is ever discarded. Low-confidence results are still
-    sent, marked for the rescuer to verify. A missed victim costs far more than a false alarm.
+    What YOLOv8 found in the photo, and what goes to the rescuer.
+    Policy: NO heat signal is ever discarded. Low-confidence or empty results are still sent, marked for
+    the rescuer to verify. A missed victim costs far more than a false alarm.
     """
-    conf = float(np.clip(rng.normal(CONF_MEAN[source.kind], 0.06), 0.01, 0.99))
-    label = LABELS[source.kind]
-    body_temp_like = 28.0 <= measured_temp <= 39.5
-    if conf >= 0.85:
-        status, label_out = "CONFIRMED VICTIM", label
+    label, conf = dets[0][:2] if dets else ("no person detected", 0.0)
+    if conf >= 0.8:
+        status = "CONFIRMED VICTIM"
     elif conf >= 0.5:
-        status, label_out = "LIKELY VICTIM - please verify", label
+        status = "LIKELY VICTIM - please verify"
     else:
-        status = "POSSIBLE VICTIM - please verify"
-        label_out = f"unclear ({label}?)"
-    return dict(label=label_out, confidence=round(conf, 2), status=status,
-                body_temp_like=body_temp_like, measured_temp=round(measured_temp, 1))
+        status, label = "POSSIBLE VICTIM - please verify", f"unclear ({label}?)" if dets else "unclear heat source"
+    return dict(label=label, confidence=round(conf, 2), status=status, body_temp_like=28.0 <= measured_temp <= 39.5,
+                measured_temp=round(measured_temp, 1), model=vision.name(),
+                detections=[dict(label=d[0], conf=round(d[1], 2)) for d in dets])
 
 
 # ---------------- phone signals ----------------

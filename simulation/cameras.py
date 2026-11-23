@@ -3,7 +3,7 @@ Live drone cameras, rendered in background processes so that watching drones nev
 
 Each worker builds its own identical copy of the scene (same seed), receives the drones' poses a few
 times a second, renders the watched drones' cameras (photo + thermal, with the AI's boxes) to
-results/cams/drone<N>[_thermal].jpg and reports what it saw. A busy worker drops stale frames.
+results/cams/drone<N>[_thermal].jpg with YOLOv8 detections drawn, and reports what it saw. A busy worker drops stale frames.
 """
 import multiprocessing as mp
 import os, queue
@@ -13,6 +13,7 @@ import pybullet as p
 import pybullet_data
 import config as C
 import perception as P
+import vision
 from world import World, poly_mask
 
 
@@ -40,13 +41,13 @@ def _worker(cfg, jobs, results):
             p.resetBasePositionAndOrientation(m, [pos[0], pos[1], pos[2] + 0.12], [0, 0, 0, 1], physicsClientId=cl)
         for i in job["render"]:
             rgb, seg = P.camera(cl, *P.drone_view(*job["poses"][i]))
-            dets = P.detect(seg, world.sources)
+            dets = vision.detect(cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
             th, hot = P.thermal(rgb, seg, world.sources)
             for name, img in ((f"drone{i}", cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)), (f"drone{i}_thermal", th)):
                 tmp = os.path.join(cfg["out"], name + ".tmp.jpg")
                 cv2.imwrite(tmp, P.draw_boxes(img, dets), [cv2.IMWRITE_JPEG_QUALITY, 80])
                 os.replace(tmp, os.path.join(cfg["out"], name + ".jpg"))
-            results.put((i, dict(t=job["t"], heat=hot, people=[P.LABELS[s.kind] for s, _ in dets])))
+            results.put((i, dict(t=job["t"], heat=hot, people=[f"{label.replace('body part: ', '')} {conf:.0%}" for label, conf, _ in dets])))
 
 
 class CameraPool:

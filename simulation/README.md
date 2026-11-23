@@ -59,6 +59,9 @@ Everything is stored locally in `results/`. No cloud or database is needed for t
 | `run_mission.py` | Mission loop: physics, control, comms, events, video, report |
 | `agents.py` | `DroneAgent` (per-drone autonomous AI) and `CommandAI` (central coordinator) |
 | `planning.py` | Zone splitting, coverage paths, A* flight paths, rescuer safe routes |
+| `vision.py` | Victim detector: Ultralytics YOLOv8 (fine-tuned weights in `models/`), classes person / hand / foot / head |
+| `train_detector.py` | Renders a randomised synthetic dataset with exact labels and fine-tunes YOLOv8n on it |
+| `humans.py` | Victims built from body parts (whole person, or a hand, foot or head out of the rubble) and heat decoys |
 | `perception.py` | Thermal scan, drone camera (photo, live view, segmentation-based thermal, AI boxes), AI victim check, phone RSSI locating, priority score |
 | `rescue.py` | Ground rescue teams + dispatcher (priority queue, rescuer verification, "send team") |
 | `rescuer_link.py` | Dashboard → swarm commands: verify, send team, recall, takeover/release, snapshot, camera watch list |
@@ -71,7 +74,7 @@ Everything is stored locally in `results/`. No cloud or database is needed for t
 
 ## Honest notes on what's simulated
 
-- **Photos are real rendered camera images.** The person/body-part classifier is a calibrated stand-in that returns realistic confidence scores. On hardware it becomes a detector such as YOLOv8, trained on whole people and partial body parts in rubble. The never-discard decision policy stays the same.
+- **Photos are real rendered camera images, checked by a real YOLOv8.** The detector (`models/halo_yolov8n.pt`) is YOLOv8n fine-tuned on synthetic photos from this simulator (`train_detector.py`), so it knows rendered people, not yet real ones: on hardware, fine-tune it on real rubble imagery. The never-discard decision policy stays the same.
 - **Phone signals** use a log-distance path-loss model. Each victim's rubble attenuates differently, which the AI doesn't know, plus 3 dB noise.
 - **Battery** uses a drain model (hover plus speed). Charging is sped up 6% per second so the demo stays short.
 - **The aftershock** is a scripted event that triggers while a drone is inside the damaged building, so the SOS behaviour always shows in the demo.

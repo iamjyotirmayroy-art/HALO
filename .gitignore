@@ -9,3 +9,6 @@ simulation/results/commands.json*
 simulation/results/area.json
 simulation/results/mission.log
 simulation/results/*.tmp
+# detector training data and downloaded base weights (the fine-tuned halo_yolov8n.pt is committed)
+simulation/datasets/
+simulation/models/yolov8*.pt

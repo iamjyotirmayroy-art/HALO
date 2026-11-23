@@ -93,7 +93,7 @@ Simulated earthquake-hit city block (~100 m, at 1:8 scale): **20 hidden victims 
 | Feature | Description |
 |---|---|
 | **Thermal detection** | Every unusual heat signal is investigated. |
-| **AI photo verification** | The drone photographs each heat signal. **YOLOv8** checks for a whole person **or a partial body part** sticking out of rubble. |
+| **AI photo verification** | The drone photographs each heat signal. **Ultralytics YOLOv8**, fine-tuned for this task, detects a whole person **or a partial body part** (hand, foot, head) sticking out of rubble, and draws its boxes on the photo, the live cameras and rescuer snapshots. |
 | **Never discards a signal** | Low-confidence results go to a rescuer to verify. A missed victim is treated as far worse than a false alarm. |
 | **Phone-signal locating** | Finds **buried survivors with no heat or visual contact** from their phones' Wi-Fi/Bluetooth signals. |
 | **Priority scoring** | Ranks victims by urgency (certainty, how trapped they are, hazards nearby, body temperature). |
@@ -160,6 +160,16 @@ python dashboard/serve.py                      # open the rescuer dashboard → 
 
 More options: `simulation/README.md`.
 
+### 🧠 Victim detector (YOLOv8)
+
+Photo verification uses the [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics) repo. Stock COCO YOLOv8 does not recognise people rendered by a simulator (sim-to-real domain gap), so `simulation/train_detector.py` fine-tunes the official `yolov8n.pt` on synthetic drone photos rendered by the same simulator. Every image is randomised (ground, rubble, heat decoys, 1–4 victims with random clothes, skin tone, pose and burial, camera height, tilt and light), and labels come pixel-exact from the renderer's segmentation mask. Four classes: **person, hand, foot, head**. The trained weights ship as `simulation/models/halo_yolov8n.pt`.
+
+```bash
+python simulation/train_detector.py            # ~2 min to render 3,000 images, then CPU training (a GPU is much faster)
+```
+
+On real drones, fine-tune the same model again on real rubble imagery: the rest of the pipeline stays as it is.
+
 ### 🖥️ Using the rescuer dashboard
 
 Search a place (e.g. *Mumbai*) → **📍 Set rescue base** → **🔍 Search for humans** → draw the area (rectangle or polygon), pick the number of drones and rescue teams → **🚀 Launch**. The server fits the simulation onto that area and starts it, and everything streams live onto the map.
@@ -214,12 +224,13 @@ The control AI talks to drones only through the `hal/` interface, so **the same 
 | Thermal + phone-signal detection, priority scoring, safe routes, rescue teams | ✅ Done (simulation) |
 | Rescuer dashboard: map, thermal zones, victims, alerts, replay | ✅ Done |
 | SafetyLayer with ORCA + rangefinder sensing, 0-collision test suite | 🚧 In progress |
-| YOLOv8 photo verification (people + body parts) | 🚧 In progress |
+| YOLOv8 photo verification: fine-tuned on synthetic drone photos (person, hand, foot, head) | ✅ Done (simulation) |
+| YOLOv8 fine-tune on real rubble imagery | 🔜 Planned |
 | Dashboard: Search for humans, live flight paths, victim verification, camera wall, manual takeover, alerts, PWA | ✅ Done |
 | Dashboard: fleet setup + live pre-flight check | 🚧 In progress |
 | Relief drops, real-hardware backend (PX4) | 🔜 Planned |
 
-> **Note on the simulation:** photos and thermal frames are rendered from the 3D scene. The aftershock is a scripted event, and charging is sped up for the demo.
+> **Note on the simulation:** photos and thermal frames are rendered from the 3D scene, and YOLOv8 runs on them for real. The detector is trained on simulated images, so its confidence scores apply to the simulation, not yet to real photos. The aftershock is a scripted event, and charging is sped up for the demo.
 
 ---
 

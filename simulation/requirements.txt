@@ -6,3 +6,4 @@ numpy
 scipy
 opencv-python
 pytest
+ultralytics
