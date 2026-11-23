@@ -2,326 +2,99 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>HALO Rescuer Dashboard</title>
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HALO">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="style.css">
 <script src="vendor/leaflet/leaflet.js"></script>
-<style>
-  :root {
-    --bg: #0d1117; --panel: #161b22; --panel2: #1c2330; --line: #2a3242; --text: #e6edf3; --muted: #8b98a9;
-    --red: #ff4d4f; --amber: #f5a623; --green: #2ecc71; --blue: #3b8cff; --violet: #b07cff; --cyan: #1abcc4;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
-    font: 13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  header { height: 56px; display: flex; align-items: center; gap: 18px; padding: 0 16px;
-    border-bottom: 1px solid var(--line); background: var(--panel); }
-  .brand { font-weight: 800; font-size: 18px; letter-spacing: .5px; }
-  .brand small { display: block; font-weight: 500; font-size: 11px; color: var(--muted); letter-spacing: 0; }
-  .kpis { display: flex; gap: 10px; margin-left: 10px; }
-  .kpi { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; min-width: 92px; }
-  .kpi b { display: block; font-size: 16px; font-variant-numeric: tabular-nums; }
-  .kpi span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
-  .mode { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-  .pill { padding: 3px 9px; border-radius: 999px; font-weight: 700; font-size: 11px; }
-  .pill.live { background: rgba(255,77,79,.15); color: var(--red); }
-  .pill.replay { background: rgba(59,140,255,.15); color: var(--blue); }
-  button, select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px;
-    padding: 5px 10px; font: inherit; cursor: pointer; }
-  button:hover { border-color: var(--blue); }
-  input[type=range] { width: 180px; }
-  main { display: grid; grid-template-columns: 1fr 400px; height: calc(100% - 56px - 150px); }
-  #map { height: 100%; background: #1a1f27; }
-  aside { border-left: 1px solid var(--line); background: var(--panel); overflow-y: auto; }
-  section { padding: 10px 12px; border-bottom: 1px solid var(--line); }
-  h3 { margin: 0 0 8px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
-  .alert { border-left: 3px solid var(--red); background: rgba(255,77,79,.08); padding: 6px 8px; border-radius: 4px;
-    margin-bottom: 6px; }
-  .alert.verify { border-color: var(--amber); background: rgba(245,166,35,.08); }
-  .drones { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .drone { background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
-  .drone .top { display: flex; justify-content: space-between; font-weight: 700; }
-  .bar { height: 5px; background: #2a3242; border-radius: 3px; margin: 5px 0 3px; overflow: hidden; }
-  .bar i { display: block; height: 100%; }
-  .drone .net { font-size: 11px; color: var(--muted); }
-  .teams { display: flex; gap: 6px; }
-  .team { flex: 1; background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
-  .team b { color: #ff9a2e; }
-  .victim { display: grid; grid-template-columns: 64px 1fr; gap: 8px; padding: 7px; border-radius: 6px;
-    border: 1px solid var(--line); background: var(--panel2); margin-bottom: 6px; cursor: pointer; }
-  .victim:hover { border-color: var(--blue); }
-  .victim img, .victim .noimg { width: 64px; height: 64px; object-fit: cover; border-radius: 4px; background: #000; }
-  .victim .noimg { display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted);
-    text-align: center; }
-  .victim .row1 { display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
-  .prio { font-size: 11px; padding: 1px 6px; border-radius: 4px; color: #000; font-weight: 800; }
-  .vmeta { font-size: 11px; color: var(--muted); }
-  .status { font-size: 11px; font-weight: 600; }
-  footer { height: 150px; border-top: 1px solid var(--line); background: var(--panel); overflow-y: auto;
-    padding: 6px 12px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
-  footer div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .lvl-alarm { color: var(--red); font-weight: 700; } .lvl-warn { color: var(--amber); }
-  .lvl-victim, .lvl-ok { color: var(--green); } .lvl-verify { color: #ffd166; } .lvl-heat { color: #8fb3ff; }
-  .lvl-net { color: #c3a3ff; } .lvl-info { color: #c9d1d9; }
-  #modal { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; align-items: center; justify-content: center; z-index: 9999; }
-  #modal .box { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; width: 560px; }
-  #modal img { width: 100%; border-radius: 6px; background: #000; }
-  .legend { background: rgba(22,27,34,.92); color: var(--text); padding: 8px 10px; border-radius: 8px; line-height: 1.7;
-    border: 1px solid var(--line); font-size: 11px; }
-  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .sos-pulse { animation: pulse 1s infinite; }
-  @keyframes pulse { 0% { opacity: 1; } 50% { opacity: .25; } 100% { opacity: 1; } }
-  .empty { color: var(--muted); font-size: 12px; }
-  .leaflet-control-layers { background: rgba(22,27,34,.92) !important; color: var(--text) !important; border: 1px solid var(--line) !important; }
-  .lbl { background: none; border: none; box-shadow: none; color: #fff; font-weight: 800; font-size: 10px;
-    text-shadow: 0 0 3px #000, 0 0 3px #000; }
-</style>
 </head>
 <body>
 <header>
-  <div class="brand">HALO <small>Hazard-Aware Lifesaving Operations · Rescuer Dashboard</small></div>
+  <div class="brand">HALO <small>Rescuer Dashboard</small></div>
+  <form id="search" class="search" autocomplete="off">
+    <input id="q" type="search" placeholder="Search a city, area or address" aria-label="Search a place">
+    <div id="results" class="results"></div>
+  </form>
   <div class="kpis">
     <div class="kpi"><b id="k-time">0.0 s</b><span>Mission time</span></div>
     <div class="kpi"><b id="k-cov">0%</b><span>Area searched</span></div>
     <div class="kpi"><b id="k-found">0 / 0</b><span>Victims found</span></div>
-    <div class="kpi"><b id="k-reached">0</b><span>Reached by teams</span></div>
+    <div class="kpi"><b id="k-reached">0</b><span>Reached</span></div>
     <div class="kpi"><b id="k-online">0 / 0</b><span>Drones online</span></div>
+  </div>
+  <div class="actions">
+    <button id="btn-base" title="Click the map to place the rescue base">📍<span class="t"> Set rescue base</span></button>
+    <button id="btn-mission" class="primary">🔍<span class="t"> Search for humans</span></button>
+    <button id="btn-cams">📹<span class="t"> Cameras</span></button>
+    <button id="btn-mute" title="Alert sound on/off">🔔</button>
   </div>
   <div class="mode">
     <span id="mode" class="pill live">CONNECTING…</span>
-    <button id="btn-play" style="display:none">⏸</button>
-    <select id="speed" style="display:none"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option><option value="8">8×</option></select>
-    <input id="scrub" type="range" min="0" max="0" value="0" style="display:none">
-    <select id="basemap"><option value="osm">Street map</option><option value="sat">Satellite</option><option value="none">Schematic</option></select>
-    <button id="btn-replay">Replay mission</button>
+    <button id="btn-play" hidden>⏸</button>
+    <select id="speed" hidden><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option><option value="8">8×</option></select>
+    <input id="scrub" type="range" min="0" max="0" value="0" hidden aria-label="Replay timeline">
+    <button id="btn-replay">Replay</button>
   </div>
 </header>
+
 <main>
   <div id="map"></div>
-  <aside>
-    <section><h3>Alerts</h3><div id="alerts"><div class="empty">No alerts</div></div></section>
-    <section><h3>Drone swarm</h3><div class="drones" id="drones"></div></section>
-    <section><h3>Rescue teams</h3><div class="teams" id="teams"></div></section>
-    <section><h3>Victims · sorted by priority</h3><div id="victims"><div class="empty">Searching…</div></div></section>
+  <div id="banner" class="banner" hidden></div>
+  <div id="launch" class="card launch" hidden>
+    <h3>🔍 Search for humans</h3>
+    <p class="vmeta" id="launch-hint">Draw the disaster area on the map.</p>
+    <div class="row"><button data-draw="rect">▭ Rectangle</button><button data-draw="poly">⬠ Polygon</button><button id="draw-finish" hidden>✔ Finish</button></div>
+    <div class="row"><label>Drones <input id="n-drones" type="number" min="1" max="10" value="6"></label>
+      <label>Rescue teams <input id="n-teams" type="number" min="1" max="10" value="3"></label></div>
+    <div class="row"><button id="launch-go" class="primary" disabled>🚀 Launch</button><button id="launch-cancel">Cancel</button></div>
+  </div>
+  <aside id="panel">
+    <section id="sec-alerts"><h3>Alerts</h3><div id="alerts"><div class="empty">No alerts</div></div></section>
+    <section id="sec-drones"><h3>Drone swarm</h3><div class="drones" id="drones"></div></section>
+    <section id="sec-teams"><h3>Rescue teams</h3><div class="teams" id="teams"></div></section>
+    <section id="sec-victims"><h3>Victims · by priority</h3>
+      <div class="chips" id="vfilter"><button data-f="all" class="on">All</button><button data-f="open">Not rescued</button><button data-f="verify">Needs verification</button><button data-f="buried">Buried</button></div>
+      <div id="victims"><div class="empty">No mission yet</div></div></section>
+    <section id="sec-feed"><h3>Event feed</h3><div id="feed"></div></section>
   </aside>
 </main>
-<footer id="feed"></footer>
-<div id="modal"><div class="box"><div id="modal-body"></div><div style="text-align:right;margin-top:10px"><button onclick="closeModal()">Close</button></div></div></div>
 
-<script>
-// ---------- configuration ----------
-// The simulation scene is a scale model: 1 sim metre = map_scale real metres (default 8 → ~96 m x 96 m block).
-// Change ORIGIN to place the search area anywhere on the map.
-const ORIGIN = [22.5726, 88.3639];     // lat, lon of the search area's south-west corner
-const DATA = "../simulation/results/"; // where the simulation stores everything (local files)
-const COLORS = ["#4287f5", "#f5a623", "#9b59b6", "#2ecc71", "#e74c3c", "#1abcc4"];
+<nav id="tabs" class="tabs">
+  <button data-tab="alerts">🚨<span>Alerts</span></button><button data-tab="drones">🛩<span>Drones</span></button>
+  <button data-tab="victims">🧍<span>Victims</span></button><button data-tab="teams">🚑<span>Teams</span></button>
+  <button data-tab="cams">📹<span>Cameras</span></button>
+</nav>
 
-let S = null, frames = null, idx = 0, playing = true, mode = "live", lastT = -1;
-const map = L.map("map", { zoomControl: true, attributionControl: true, maxZoom: 21, zoomSnap: 0.25 });
-const tiles = {
-  osm: L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 21, maxNativeZoom: 19, attribution: "© OpenStreetMap contributors" }),
-  sat: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 21, maxNativeZoom: 19, attribution: "Imagery © Esri" }),
-};
-let base = tiles.osm.addTo(map);
-document.getElementById("basemap").onchange = e => {
-  map.removeLayer(base); base = null;
-  if (tiles[e.target.value]) base = tiles[e.target.value].addTo(map);
-};
-const heatLayer = L.layerGroup();
-const staticLayer = L.layerGroup().addTo(map), coverLayer = L.layerGroup().addTo(map), routeLayer = L.layerGroup().addTo(map),
-      linkLayer = L.layerGroup().addTo(map), dynLayer = L.layerGroup().addTo(map);
-heatLayer.addTo(map);
-L.control.layers(null, { "🔥 Thermal zones": heatLayer, "Searched area": coverLayer, "Rescue routes": routeLayer, "Radio links": linkLayer },
-  { collapsed: false, position: "topright" }).addTo(map);
+<div id="camwall" class="overlay" hidden>
+  <div class="bar-top"><b>📹 Live cameras</b><div class="chips" id="campick"></div><button id="cams-close">✕</button></div>
+  <div id="camgrid" class="camgrid"></div>
+</div>
 
-function ll(x, y) {
-  const k = S.map_scale, lat0 = ORIGIN[0], lon0 = ORIGIN[1];
-  return [lat0 + y * k / 111320, lon0 + x * k / (111320 * Math.cos(lat0 * Math.PI / 180))];
-}
-function cellRect(i, j) { const c = S.cell; return [ll(i * c, j * c), ll((i + 1) * c, (j + 1) * c)]; }
+<div id="pilot" class="overlay pilot" hidden>
+  <div class="bar-top"><b id="pilot-title">🎮 Manual control</b><span id="pilot-status" class="vmeta"></span><button id="pilot-release" class="danger">Release control</button></div>
+  <div class="pilot-view">
+    <img id="pilot-cam" alt="drone camera">
+    <div id="pilot-warn" class="warn" hidden>⚠ Obstacle ahead: safety system holding the drone back</div>
+    <div class="pilot-tools"><button id="pilot-mode">Thermal</button><button id="pilot-snap">📸 Capture &amp; AI check</button></div>
+  </div>
+  <div class="sticks">
+    <div class="stick" id="stick-move"><i></i><span>move</span></div>
+    <p class="vmeta keys">Keyboard: <b>W/S</b> forward/back · <b>A/D</b> left/right · <b>Q/E</b> rotate · <b>R/F</b> up/down · gamepad works too.<br>
+      Anti-crash safety stays on. Auto-release after 2 s with no input.</p>
+    <div class="stick" id="stick-alt"><i></i><span>up/down · rotate</span></div>
+  </div>
+</div>
 
-function drawStatic() {
-  staticLayer.clearLayers();
-  L.rectangle([ll(0, 0), ll(S.area, S.area)], { color: "#fff", weight: 2, fill: false, dashArray: "6 4" }).addTo(staticLayer);
-  S.radiation.forEach((row, i) => row.forEach((v, j) => {
-    if (v > 0.15) L.rectangle(cellRect(i, j), { stroke: false, fillColor: "#ffd400", fillOpacity: Math.min(.65, v / 3 * .7) }).addTo(staticLayer);
-  }));
-  S.rubble.forEach(([i, j]) => L.rectangle(cellRect(i, j), { stroke: false, fillColor: "#8a6a4a", fillOpacity: .35 }).addTo(staticLayer));
-  S.tall.forEach(([i, j]) => L.rectangle(cellRect(i, j), { stroke: false, fillColor: "#9aa3ad", fillOpacity: .85 }).addTo(staticLayer));
-  S.weak.forEach(([i, j]) => L.rectangle(cellRect(i, j), { stroke: false, fillColor: "#ff8c1a", fillOpacity: .45 }).addTo(staticLayer));
-  L.circle(ll(...S.dead_zone.c), { radius: S.dead_zone.r * S.map_scale, color: "#b07cff", weight: 1.5, dashArray: "4 4", fillOpacity: .05 })
-    .bindTooltip("No radio signal (debris shadow)").addTo(staticLayer);
-  L.marker(ll(S.base[0], S.base[1]), { icon: L.divIcon({ className: "lbl", html: "🚑 BASE", iconSize: [60, 14] }) }).addTo(staticLayer);
-  const rad = S.radiation.flat().indexOf(Math.max(...S.radiation.flat()));
-  L.marker(ll((Math.floor(rad / S.n) + .5) * S.cell, (rad % S.n + .5) * S.cell), { icon: L.divIcon({ className: "lbl", html: "☢ RADIATION", iconSize: [80, 14] }) }).addTo(staticLayer);
-  map.fitBounds([ll(-2.2, -0.3), ll(S.area + .3, S.area + .3)], { padding: [10, 10] });
-  const legend = L.control({ position: "bottomleft" });
-  legend.onAdd = () => { const d = L.DomUtil.create("div", "legend"); d.innerHTML =
-    '<i style="background:#9aa3ad"></i>Building<br><i style="background:#ff8c1a"></i>Unstable structure<br>' +
-    '<i style="background:#ffd400"></i>Radiation<br><i style="background:#8a6a4a"></i>Rubble<br>' +
-    '<i style="background:#2ecc71"></i>Safe rescue route<br><i style="background:#ff4d4f"></i>Unsafe direct route<br>' +
-    '<i style="background:#ff9a2e;border-radius:50%"></i>Rescue team'; return d; };
-  legend.addTo(map);
-}
-
-function prioColor(p) { return p >= 70 ? "#ff4d4f" : p >= 50 ? "#f5a623" : "#ffd166"; }
-function victimColor(v) {
-  if (v.status.startsWith("DISMISSED")) return "#6e7681";
-  if (v.reached_t) return "#3b8cff";
-  if (v.status.includes("verify")) return "#ffd166";
-  return v.source === "phone" ? "#ff6bf0" : "#2ecc71";
-}
-
-function render(st) {
-  if (st.t === lastT) return; lastT = st.t;
-  // KPIs
-  const humans = st.victims.filter(v => !v.status.startsWith("DISMISSED"));
-  document.getElementById("k-time").textContent = st.t.toFixed(1) + " s";
-  document.getElementById("k-cov").textContent = st.coverage.toFixed(0) + "%";
-  document.getElementById("k-found").textContent = `${humans.filter(v => v.source === "phone" || v.status !== "POSSIBLE VICTIM - please verify").length} / ${S.n_victims}`;
-  document.getElementById("k-reached").textContent = st.victims.filter(v => v.reached_t).length;
-  document.getElementById("k-online").textContent = `${st.drones.filter(d => d.online && d.state !== "TRAPPED").length} / ${st.drones.length}`;
-
-  // covered cells
-  coverLayer.clearLayers();
-  for (let k = 0; k < st.covered.length; k++) if (st.covered[k] === "1") {
-    const i = Math.floor(k / S.n), j = k % S.n;
-    L.rectangle(cellRect(i, j), { stroke: false, fillColor: "#3b8cff", fillOpacity: .13, interactive: false }).addTo(coverLayer);
-  }
-  if (st.collapsed) { const b = S.weak_box;
-    L.rectangle([ll(b[0], b[1]), ll(b[2], b[3])], { color: "#ff4d4f", weight: 2, fillOpacity: .25, fillColor: "#ff4d4f" })
-      .bindTooltip("COLLAPSED in aftershock").addTo(coverLayer); }
-
-  // routes
-  routeLayer.clearLayers();
-  for (const [vid, r] of Object.entries(st.routes)) {
-    if (r.direct.length) L.polyline(r.direct.map(p => ll(...p)), { color: "#ff4d4f", weight: 2, dashArray: "5 5", opacity: .8 }).addTo(routeLayer);
-    if (r.safe.length) L.polyline([ll(...S.entry), ...r.safe.map(p => ll(...p))], { color: "#2ecc71", weight: 3, opacity: .85 }).addTo(routeLayer);
-  }
-  heatLayer.clearLayers();
-  (st.heat || []).forEach(h => {
-    const v = st.victims.find(x => x.id === h.id);
-    const dismissed = v && v.status.startsWith("DISMISSED");
-    const hot = Math.min(1, (h.temp - 25) / 15);
-    [[1.0, .10], [0.65, .18], [0.38, .30], [0.16, .55]].forEach(([r, o]) =>
-      L.circle(ll(...h.pos), { radius: r * S.map_scale, stroke: false, interactive: false,
-        fillColor: dismissed ? "#6e7681" : (r < .3 ? "#fff3b0" : r < .5 ? "#ffb000" : "#ff2a00"),
-        fillOpacity: dismissed ? o * .4 : o * (0.6 + 0.4 * hot), className: h.checked ? "" : "sos-pulse" }).addTo(heatLayer));
-    const tag = !h.checked ? `<span style="color:#ffd166">🤖 AI checking…</span>`
-      : dismissed ? `<span style="color:#9aa3ad">✖ not a person</span>`
-      : `<span style="color:#7dffa1">✔ ${v.label.replace("body part: ", "")} ${Math.round(v.confidence * 100)}%</span>`;
-    L.marker(ll(h.pos[0], h.pos[1] - .75), { interactive: false, icon: L.divIcon({ className: "lbl", iconSize: [140, 26], iconAnchor: [70, 0],
-      html: `<div style="text-align:center">🔥 ${h.temp.toFixed(1)}°C<br>${tag}</div>` }) }).addTo(heatLayer);
-  });
-
-  linkLayer.clearLayers();
-  st.links.forEach(([a, b]) => L.polyline([ll(...a), ll(...b)], { color: "#c3a3ff", weight: 1, opacity: .6, interactive: false }).addTo(linkLayer));
-
-  // markers
-  dynLayer.clearLayers();
-  st.victims.forEach(v => {
-    const m = L.circleMarker(ll(...v.pos), { radius: 8, color: victimColor(v), weight: 3, fillOpacity: .35 })
-      .bindTooltip(`${v.id} · ${v.label}<br>${v.status}<br>priority ${v.priority}`).addTo(dynLayer);
-    m.on("click", () => openVictim(v));
-    L.marker(ll(v.pos[0] + .25, v.pos[1] + .25), { icon: L.divIcon({ className: "lbl", html: `${v.id}`, iconSize: [30, 12] }), interactive: false }).addTo(dynLayer);
-  });
-  st.sos.forEach(s => L.circleMarker(ll(...s.pos), { radius: 16, color: "#ff4d4f", weight: 3, fill: false, className: "sos-pulse" })
-    .bindTooltip(`SOS · drone ${s.drone} trapped`).addTo(dynLayer));
-  st.teams.forEach(t => {
-    L.circleMarker(ll(...t.pos), { radius: 7, color: "#fff", weight: 2, fillColor: "#ff9a2e", fillOpacity: 1 }).bindTooltip(`Team ${t.name}: ${t.state}${t.victim ? " → " + t.victim : ""}`).addTo(dynLayer);
-    L.marker(ll(t.pos[0], t.pos[1] - .45), { icon: L.divIcon({ className: "lbl", html: t.name, iconSize: [24, 12] }), interactive: false }).addTo(dynLayer);
-  });
-  st.drones.forEach(d => {
-    const c = COLORS[d.id % COLORS.length];
-    L.circleMarker(ll(d.pos[0], d.pos[1]), { radius: 9, color: d.online ? "#fff" : "#b07cff", weight: d.online ? 2 : 3, dashArray: d.online ? null : "3 3", fillColor: c, fillOpacity: 1 })
-      .bindTooltip(`Drone ${d.id}: ${d.state} · ${d.battery.toFixed(0)}%`).addTo(dynLayer);
-    L.marker(ll(d.pos[0], d.pos[1]), { icon: L.divIcon({ className: "lbl", html: `D${d.id}`, iconSize: [20, 12], iconAnchor: [9, 6] }), interactive: false }).addTo(dynLayer);
-  });
-
-  // side panel
-  const al = [];
-  st.sos.forEach(s => al.push(`<div class="alert"><b>SOS · Drone ${s.drone} trapped</b><br><span class="vmeta">Last position (${s.pos[0]}, ${s.pos[1]}) at ${s.t}s · beacon active · zone re-assigned</span></div>`));
-  (st.heat || []).filter(h => !h.checked).forEach(h =>
-    al.push(`<div class="alert verify" style="border-color:#ff7a00;background:rgba(255,122,0,.08)"><b>🔥 Heat signal ${h.temp.toFixed(1)}°C</b> at (${h.pos[0]}, ${h.pos[1]})<br><span class="vmeta">Drone ${h.drone} diving for a photo · 🤖 AI checking for a person or body part…</span></div>`));
-  st.victims.filter(v => v.status.startsWith("POSSIBLE")).forEach(v =>
-    al.push(`<div class="alert verify"><b>Verify ${v.id}</b> · ${v.label} (${Math.round(v.confidence * 100)}% AI)<br><span class="vmeta">Low AI confidence. Look at the drone photo: person or not?</span></div>`));
-  document.getElementById("alerts").innerHTML = al.join("") || '<div class="empty">No alerts</div>';
-
-  document.getElementById("drones").innerHTML = st.drones.map(d => {
-    const c = COLORS[d.id % COLORS.length], b = d.battery, bc = b > 40 ? "#2ecc71" : b > 20 ? "#f5a623" : "#ff4d4f";
-    const net = d.state === "TRAPPED" ? "🆘 SOS beacon" : !d.online ? "offline · autonomous" : d.hops > 1 ? `mesh relay ×${d.hops - 1}` : "online";
-    return `<div class="drone" style="border-left:3px solid ${c}"><div class="top"><span>Drone ${d.id}</span><span style="color:${c}">${d.state}</span></div>
-      <div class="bar"><i style="width:${b}%;background:${bc}"></i></div><div class="net">${b.toFixed(0)}% · ${net}</div></div>`;
-  }).join("");
-
-  document.getElementById("teams").innerHTML = st.teams.map(t =>
-    `<div class="team"><b>${t.name}</b> <span class="vmeta">${t.state.replace("_", " ")}</span><br><span class="vmeta">${t.victim ? "→ " + t.victim : "&nbsp;"} · saved ${t.rescued.length}</span></div>`).join("");
-
-  const vs = [...st.victims].sort((a, b) => (a.reached_t ? 1 : 0) - (b.reached_t ? 1 : 0) || b.priority - a.priority);
-  document.getElementById("victims").innerHTML = vs.map(v => `
-    <div class="victim" onclick='openVictim(${JSON.stringify(v).replace(/'/g, "&#39;")})'>
-      ${v.thermal ? `<img src="${DATA + v.thermal}" alt="thermal ${v.id}" title="thermal">` : `<div class="noimg">📶 phone<br>signal</div>`}
-      <div><div class="row1"><span>${v.id} · ${v.label}</span><span class="prio" style="background:${prioColor(v.priority)}">P${v.priority}</span></div>
-        <div class="status" style="color:${victimColor(v)}">${v.reached_t ? `✔ Reached by ${v.team} (${v.response_s}s)` : v.status}</div>
-        <div class="vmeta">${v.source === "phone" ? "phone signal" : `🤖 AI ${Math.round(v.confidence * 100)}% · 🔥 ${v.temp ?? "–"}°C`} · (${v.pos[0]}, ${v.pos[1]})${v.route_status && v.route_status.startsWith("REROUTED") ? " · rerouted" : ""}</div></div>
-    </div>`).join("") || '<div class="empty">Searching…</div>';
-
-  const feed = document.getElementById("feed");
-  feed.innerHTML = [...st.events].reverse().map(e => `<div class="lvl-${e.lvl}">[${e.t.toFixed(1).padStart(6)}s] ${e.msg}</div>`).join("");
-}
-
-function openVictim(v) {
-  document.getElementById("modal-body").innerHTML =
-    (v.photo ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-        <div><img src="${DATA + v.thermal}"><div class="vmeta" style="text-align:center">Thermal camera</div></div>
-        <div><img src="${DATA + v.photo}"><div class="vmeta" style="text-align:center">Drone photo</div></div></div>
-        <div style="margin-top:8px"><div class="vmeta">🤖 AI check: <b style="color:var(--text)">${v.label}</b></div>
-        <div class="bar" style="height:8px"><i style="width:${Math.round(v.confidence * 100)}%;background:${v.confidence >= .85 ? "#2ecc71" : v.confidence >= .5 ? "#f5a623" : "#ff4d4f"}"></i></div>
-        <div class="vmeta">${Math.round(v.confidence * 100)}% confidence · never discarded: low-confidence signals go to a rescuer to verify</div></div>`
-      : `<div class="noimg" style="height:200px;display:flex;align-items:center;justify-content:center">📶 Located by phone signal only. No thermal or visual contact (likely buried).</div>`) +
-    `<h2 style="margin:10px 0 4px">${v.id} · ${v.label}</h2>
-     <div class="status" style="color:${victimColor(v)}">${v.status}</div>
-     <p class="vmeta">Priority <b>${v.priority}</b> · ${v.source === "phone" ? "phone signal" : `AI confidence ${Math.round(v.confidence * 100)}% · ${v.temp}°C`} · ${v.trapped ? "trapped" : "not trapped"}<br>
-     Route: ${v.route_status || "pending"} ${v.route_note ? "<br>" + v.route_note : ""}<br>
-     ${v.reached_t ? `Reached by team ${v.team} at ${v.reached_t}s (${v.response_s}s after detection)` : ""}</p>`;
-  document.getElementById("modal").style.display = "flex";
-  map.panTo(ll(...v.pos));
-}
-function closeModal() { document.getElementById("modal").style.display = "none"; }
-
-// ---------- data: live polling of the local file, or full replay ----------
-async function pollLive() {
-  if (mode !== "live") return;
-  try {
-    const r = await fetch(DATA + "live.json?_=" + Date.now());
-    const j = await r.json();
-    if (!S) { S = j.static; drawStatic(); }
-    render(j.state);
-    const m = document.getElementById("mode");
-    m.textContent = j.state.final ? "MISSION COMPLETE" : "● LIVE"; m.className = "pill live";
-  } catch (e) { document.getElementById("mode").textContent = "WAITING FOR SIMULATION…"; }
-  setTimeout(pollLive, 500);
-}
-async function startReplay() {
-  const r = await fetch(DATA + "replay.json?_=" + Date.now());
-  const j = await r.json();
-  mode = "replay"; frames = j.frames; idx = 0; playing = true; lastT = -1;
-  if (!S) { S = j.static; drawStatic(); }
-  const m = document.getElementById("mode"); m.textContent = "REPLAY"; m.className = "pill replay";
-  ["btn-play", "speed", "scrub"].forEach(id => document.getElementById(id).style.display = "");
-  const sc = document.getElementById("scrub"); sc.max = frames.length - 1;
-  sc.oninput = e => { idx = +e.target.value; lastT = -1; render(frames[idx]); };
-  document.getElementById("btn-play").onclick = () => { playing = !playing; document.getElementById("btn-play").textContent = playing ? "⏸" : "▶"; };
-  tick();
-}
-function tick() {
-  if (mode !== "replay") return;
-  if (playing && idx < frames.length - 1) { idx++; render(frames[idx]); document.getElementById("scrub").value = idx; }
-  setTimeout(tick, 500 / +document.getElementById("speed").value);
-}
-document.getElementById("btn-replay").onclick = () => startReplay().catch(() => alert("No replay yet: run the simulation first."));
-const q = new URLSearchParams(location.search);
-if (q.get("mode") === "replay") startReplay(); else pollLive();
-</script>
+<div id="modal" class="overlay modal" hidden><div class="box"><div id="modal-body"></div><div class="row end"><button id="modal-close">Close</button></div></div></div>
+<div id="toast" class="toast" hidden></div>
+<script src="app.js"></script>
 </body>
 </html>
