@@ -593,7 +593,7 @@ function finishDraw() {
   $("draw-finish").hidden = true; wizard();
   const m2 = areaM2(area);
   $("launch-hint").textContent = `Area: ${m2 > 1e6 ? (m2 / 1e6).toFixed(2) + " km²" : Math.round(m2).toLocaleString() + " m²"}. `
-    + (fleetReady ? `${fleetReady} drone${fleetReady > 1 ? "s" : ""} ready. Launch when set.` : "Add drones in Fleet first.");
+    + (fleetReady ? `${fleetReady} drone${fleetReady > 1 ? "s" : ""} ready. Launch when set.` : "Now add drones (step 2).");
 }
 $("draw-finish").onclick = () => draw && finishDraw();
 map.on("click", e => {
