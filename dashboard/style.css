@@ -335,3 +335,15 @@ button.primary:disabled { background: var(--raise); border-color: var(--line2); 
 .search { flex: 1 1 140px; min-width: 110px; }
 .mode { gap: 6px; flex: none; }
 @media (max-width: 1600px) { #scrub { width: 80px; } header { gap: 10px; } }
+
+/* narrow screens (must come last so it wins over the design-system rules above) */
+@media (max-width: 900px) {
+  .kpis, .mode .pill, #btn-replay, #btn-cams { display: none; }
+  header { gap: 8px; padding: 0 10px; }
+  .search { min-width: 0; flex: 1 1 auto; }
+  .brand span { font-size: 15px; letter-spacing: 2px; }
+}
+@media (max-width: 700px) {
+  .launch, .fleet { top: auto; bottom: 66px; left: 8px; right: 8px; width: auto; max-height: 52%; }
+}
+@media (max-width: 420px) { .brand div { display: none; } }
