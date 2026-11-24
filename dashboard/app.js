@@ -505,7 +505,7 @@ async function searchPlace(q, box) {
       const p = res[ev.target.closest("[data-i]")?.dataset.i]; if (!p) return;
       const b = p.boundingbox.map(Number);
       sharpestPhotos();                                  // new place: try the sharpest photos again
-      map.flyToBounds([[b[0], b[2]], [b[1], b[3]]], { maxZoom: 17 });
+      map.flyTo([+p.lat, +p.lon], 17, { duration: 1.5 });   // street level, ready to draw the search area
       placeName = p.display_name.split(",").slice(0, 2).join(",");
       $("wiz-place").textContent = "📍 " + placeName;
       box.innerHTML = $("results").innerHTML = $("wiz-results").innerHTML = "";
@@ -517,6 +517,7 @@ $("search").onsubmit = e => { e.preventDefault(); searchPlace($("q").value, $("r
 $("wiz-search").onsubmit = e => { e.preventDefault(); searchPlace($("wiz-q").value, $("wiz-results")); };
 
 let placing = false, draw = null, area = null;
+const MAX_AREA_M2 = 1e6;   // 1 km²: what a small swarm can search in one mission
 const drawStyle = { color: "#ffd166", weight: 2, dashArray: "6 4", fillOpacity: .08 };
 $("btn-base").onclick = () => { placing = true; map.getContainer().classList.add("drawing"); toast("Click the map to place the rescue base"); };
 // ---------------- mission flow: Start mission -> place -> drones -> area -> Go live; Abort; New mission ----------------
@@ -581,8 +582,12 @@ function areaM2(pts) {   // shoelace on a local flat projection
 function finishDraw() {
   const pts = draw.pts.filter((p, i) => !i || !p.equals(draw.pts[i - 1]));
   if (draw.kind === "rect" ? pts.length < 2 : pts.length < 3) return toast("Add more corners first");
-  const b = L.latLngBounds(pts);
-  area = draw.kind === "rect" ? [b.getSouthWest(), b.getSouthEast(), b.getNorthEast(), b.getNorthWest()] : pts;
+  const b = L.latLngBounds(pts), shape = draw.kind === "rect" ? [b.getSouthWest(), b.getSouthEast(), b.getNorthEast(), b.getNorthWest()] : pts;
+  if (areaM2(shape) > MAX_AREA_M2) {   // a drone swarm searches a disaster site, not a whole district
+    draw.pts = []; G.draw.clearLayers();
+    return toast(`⚠ That area is ${(areaM2(shape) / 1e6).toFixed(1)} km². Zoom in and draw at most ${MAX_AREA_M2 / 1e6} km² (a few city blocks).`, 6000);
+  }
+  area = shape;
   draw = null; G.draw.clearLayers(); L.polygon(area, drawStyle).addTo(G.draw);
   map.getContainer().classList.remove("drawing"); map.doubleClickZoom.enable();
   $("draw-finish").hidden = true; wizard();

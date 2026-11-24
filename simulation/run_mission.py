@@ -34,6 +34,7 @@ class Mission:
     def __init__(self, n_drones, n_teams, gui, out, video, aftershock=True, realtime=False):
         self.aftershock = aftershock
         self.pilot = pilot_rl.LearnedPilot() if C.PILOT == "learned" and pilot_rl.available() else None
+        P.vision.available()             # load the victim detector now, so the first photo doesn't stall the mission
         self.pilot_steps = self.shield_steps = self.crashes = self.cruise_steps = 0
         self.contacts = set()
         self.realtime = realtime or gui

@@ -17,6 +17,7 @@ from world import World, poly_mask
 
 
 def _worker(cfg, jobs, results):
+    P.vision.available()                 # load the detector once, before the first frame
     C.AREA_POLY = cfg["poly"]
     C.set_base(cfg["base"])
     cl = p.connect(p.DIRECT)

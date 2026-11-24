@@ -252,3 +252,9 @@ h3::before { content: ""; width: 3px; height: 11px; border-radius: 2px; backgrou
 .results.inline { position: static; margin-top: 6px; }
 .golive { flex: 1; }
 button.danger { background: linear-gradient(180deg, #e5484d, #b4232a); border-color: #ff6b6b; box-shadow: 0 0 14px rgba(229,72,77,.4); }
+
+/* phones: the mission wizard becomes a bottom sheet so the map stays visible for drawing */
+@media (max-width: 700px) {
+  .launch, .fleet { top: auto; bottom: 64px; left: 8px; right: 8px; width: auto; max-height: 48%; }
+  .steps li { padding-bottom: 6px; }
+}
