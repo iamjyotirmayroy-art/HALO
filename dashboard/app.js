@@ -61,7 +61,7 @@ function drawStatic() {
   Object.keys(trailLines).forEach(k => delete trailLines[k]);
   zoneOverlay = null; routesKey = "";
   const cells = a => new Set(a.map(String)), tall = cells(S.tall), weak = cells(S.weak), rubble = cells(S.rubble);
-  gridOverlay(gridImage((i, j) => tall.has(i + "," + j) ? "rgba(154,163,173,.6)" : weak.has(i + "," + j) ? "rgba(255,140,26,.45)"
+  gridOverlay(gridImage((i, j) => tall.has(i + "," + j) ? "rgba(170,182,200,.38)" : weak.has(i + "," + j) ? "rgba(255,140,26,.45)"
     : rubble.has(i + "," + j) ? "rgba(138,106,74,.35)" : S.radiation[i][j] > .15 ? `rgba(255,212,0,${Math.min(.65, S.radiation[i][j] / 3 * .7)})` : null), G.hazards);
   L.circle(ll(...S.dead_zone.c), { radius: S.dead_zone.r * S.map_scale, color: "#b07cff", weight: 1.5, dashArray: "4 4", fillOpacity: .05 })
     .bindTooltip("No radio signal (debris shadow)").addTo(G.hazards);
@@ -552,12 +552,12 @@ function renderFleet(f) {
     <div class="acts">${d.status === "FAILED" ? `<button data-retry="${d.id}">↻ Retry</button>` : ""}<button data-remove="${d.id}">Remove</button></div></div>`).join("");
   if ($("fleet-list").innerHTML !== html) $("fleet-list").innerHTML = html;   // re-render only on change, so clicks aren't lost
 }
-async function fleetCall(path, body) {
+async function fleetCall(path, body, quiet) {
   try {
     const r = await fetch("/api/fleet" + (path ? "/" + path : ""), body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
     const f = await r.json(); renderFleet(f);
     return f;
-  } catch (e) { toast("⚠ Dashboard server not reachable (run python dashboard/serve.py)"); }
+  } catch (e) { if (!quiet) toast("⚠ Dashboard server not reachable (run python dashboard/serve.py)"); }
 }
 function fleetPoll() {   // poll while anything is still being checked
   clearTimeout(fleetTimer);
@@ -573,7 +573,7 @@ $("fleet-list").onclick = e => {
   if (r) fleetCall("retry", { id: +r }).then(fleetPoll);
   if (d) fleetCall("remove", { id: +d });
 };
-fleetCall();
+fleetCall(null, null, true);
 
 // ---------------- mission summary ----------------
 function showSummary(st) {
