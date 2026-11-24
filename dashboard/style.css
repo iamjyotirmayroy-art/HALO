@@ -346,4 +346,4 @@ button.primary:disabled { background: var(--raise); border-color: var(--line2); 
 @media (max-width: 700px) {
   .launch, .fleet { top: auto; bottom: 66px; left: 8px; right: 8px; width: auto; max-height: 52%; }
 }
-@media (max-width: 420px) { .brand div { display: none; } }
+@media (max-width: 420px) { .brand div, #speed { display: none; } #scrub { width: 64px; } }
