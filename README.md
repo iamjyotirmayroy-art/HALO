@@ -16,9 +16,9 @@
 
 *Physical AI Hackathon: From Simulation to Reality · Disaster Management (Robotics + AI)*
 
-<img src="docs/screenshots/dash-live-mission.jpg" alt="HALO rescuer dashboard: live mission on satellite imagery" width="100%">
+<img src="docs/screenshots/live-mission.jpg" alt="HALO rescuer dashboard during a mission on satellite imagery" width="100%">
 
-<sub>Rescuer dashboard during a live mission: swarm zones, drone flight paths, thermal hotspots with AI verdicts and hazard-aware rescue routes on satellite imagery.</sub>
+<sub>The rescuer dashboard mid-mission: 100 % of the area searched, 20 victims found, AI verdicts on every heat signal and hazard-aware rescue routes (green) drawn on satellite imagery.</sub>
 
 [Results](#-results) · [Dashboard](#-rescuer-dashboard) · [How it works](#%EF%B8%8F-how-it-works) · [AI](#-the-ai) · [Quick start](#-quick-start) · [Sim-to-real](#-from-simulation-to-reality)
 
@@ -56,7 +56,7 @@ One simulated earthquake-hit city block (~100 m at 1:8 scale) with **20 hidden v
 
 | 🎯 Victims found | 🚑 Reached by teams | 🤖 AI detection | ⚡ vs one drone |
 |:---:|:---:|:---:|:---:|
-| **20 / 20** | **20 / 20** | **16 / 17 people · 0 / 3 decoys** | **3.2× faster** |
+| **20** | **20** | **16 of 17 people · 0 decoys** | **3.2× faster** |
 
 </div>
 
@@ -64,10 +64,10 @@ One simulated earthquake-hit city block (~100 m at 1:8 scale) with **20 hidden v
 |---|---|
 | Area searched | **100 %** in 117 s, despite one drone trapped and one recharging |
 | First victim found | **3.9 s** · all visible victims by **64 s** |
-| Partial-body victims (hand / foot / head) | **7 / 7** found |
-| Buried victims found by phone signal only | **3 / 3** (location error 0 – 1.1 m) |
+| Partial-body victims (hand / foot / head) | **All 7** found |
+| Buried victims found by phone signal only | **All 3** (location error 0 – 1.1 m) |
 | Heat signals discarded | **0**. The one person the AI was unsure about went to a rescuer, who confirmed it from the photo |
-| Decoys | **3 / 3** recognised as *not a person* |
+| Decoys (fires, an animal) | **All 3** recognised as *not a person* |
 | Avg. time from detection to a team reaching the victim | **73 s** |
 | Drone crashes (flown by the learned RL pilot) | **0** |
 | Unsafe direct routes caught and rerouted | **3** (radiation, unstable building) |
@@ -78,24 +78,30 @@ One simulated earthquake-hit city block (~100 m at 1:8 scale) with **20 hidden v
 
 ## 🖥️ Rescuer dashboard
 
-A web app for the rescue team that also installs as a phone app. All data stays on the rescue team's laptop.
+A web app for the rescue team that also installs as a phone app. It works for any city or town in the world, and all mission data stays on the rescue team's laptop.
 
 <table>
 <tr>
-<td width="50%"><img src="docs/screenshots/dash-fleet.jpg" alt="Fleet setup"><br><b>Fleet setup.</b> Add any number of drones. Each one loads its own AI pilot agent and runs a live pre-flight check until it shows 🟢 READY TO FLY. Failed checks show the reason and a Retry button.</td>
-<td width="50%"><img src="docs/screenshots/dash-victim-check.jpg" alt="AI victim check"><br><b>AI victim check.</b> Thermal image and drone photo side by side, with YOLOv8's boxes, its confidence, and Confirm / Not a person / Send team buttons.</td>
+<td width="50%"><img src="docs/screenshots/mission-wizard.jpg" alt="Mission wizard"><br><b>1 · Plan the mission.</b> A four-step wizard: choose the place (any city, town or address), add drones starting from zero, draw the search area, then go live.</td>
+<td width="50%"><img src="docs/screenshots/fleet-setup.jpg" alt="Fleet setup"><br><b>2 · Prepare the fleet.</b> Each drone added gets its own AI agent and a live pre-flight checklist. Failed checks show the reason and a Retry button.</td>
 </tr>
 <tr>
-<td><img src="docs/screenshots/dash-rescue-routes.jpg" alt="Rescue routes"><br><b>Rescue routes.</b> Each new safe route (green) draws itself across the map from the base to the victim. Unsafe direct routes (red dashed) are labelled with the reason: radiation dose or an unstable structure.</td>
-<td><img src="docs/screenshots/4-camera-wall.png" alt="Live camera wall"><br><b>Live camera wall.</b> Watch one, several or all online drones at once, in normal or thermal view, with AI boxes on people. Watching never changes what the drone does.</td>
+<td><img src="docs/screenshots/search-phase.jpg" alt="Search phase"><br><b>3 · Search.</b> Drones sweep their zones in parallel. Every heat signal is checked by the AI, and unclear ones are sent to a rescuer as alerts instead of being discarded.</td>
+<td><img src="docs/screenshots/victim-check.jpg" alt="AI victim check"><br><b>4 · Verify.</b> Thermal image and drone photo side by side, with YOLOv8's boxes and confidence, and Confirm, Not a person or Send team buttons.</td>
 </tr>
 <tr>
-<td><img src="docs/screenshots/5-manual-control.png" alt="Manual control"><br><b>Manual takeover.</b> Fly any drone with keyboard, touch joystick or gamepad. The anti-crash filter stays on, so a person can't fly it into a wall or another drone.</td>
-<td><img src="docs/screenshots/6-phone.png" alt="Phone app"><br><b>Phone app (PWA).</b> Add it to the home screen on Android or iPhone. The map goes full screen and the panels become tabs.</td>
+<td><img src="docs/screenshots/camera-wall.png" alt="Live camera wall"><br><b>Live camera wall.</b> Watch one, several or all drones at once, in normal or thermal view, with AI boxes on people.</td>
+<td><img src="docs/screenshots/manual-control.png" alt="Manual control"><br><b>Manual takeover.</b> Fly any drone by keyboard, touch joystick or gamepad. The anti-crash filter stays on.</td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/phone-app.jpg" alt="Phone app"><br><b>Phone app.</b> Installs to the home screen on Android and iPhone. The map goes full screen and the panels become tabs.</td>
+<td><img src="docs/screenshots/mission-summary.jpg" alt="Mission summary"><br><b>Mission summary.</b> At the end: victims found, victims reached by teams, mission time, alerts, SOS events, reroutes and phone-signal finds.</td>
 </tr>
 </table>
 
-**Also in the dashboard:** a 4-step mission wizard · ⛔ Abort / 🚀 New mission · place search (any city or town worldwide) · satellite map with no blank tiles (where high-zoom photos don't exist, as in small towns, the best available photo is zoomed instead) · street map · draw the search area (rectangle or polygon) · set the rescue base · live KPIs · alerts with sound (SOS, heat signal being checked, photo needs verifying, unsafe route) · drone cards (battery, state, online / mesh relay / offline-autonomous) · recall a drone · victim filters · event feed · full mission replay with timeline.
+**Also included:** Abort and New mission · satellite and street maps with automatic fallback where high-zoom imagery is missing · rectangle or polygon search areas · movable rescue base · live KPIs · audible alerts (SOS, heat signal, photo to verify, unsafe route) · drone cards with battery and link status (online, mesh relay, offline-autonomous) · recall a drone · victim filters · event feed · full mission replay with a timeline.
+
+<sub>Screenshots were taken in Chrome from the dashboard itself. Fleet setup, the camera wall and manual takeover need the local mission server (<code>serve.py</code>), so those three were captured on the rescuer laptop.</sub>
 
 ---
 
@@ -151,7 +157,7 @@ In the full mission it found **16 of 17** visible people at ≥ 50 % confidence 
 | Learned pilot | Result |
 |---|---|
 | Unseen random courses (1,000) | **91 % reach the waypoint**, 4 % collide (with drones that don't dodge back) |
-| Full HALO mission with 3 / 6 / 8 / 10 drones | **0 crashes** every time, 100 % searched, 20 / 20 victims |
+| Full HALO mission with 3, 6, 8 and 10 drones | **0 crashes** every time, 100 % searched, all 20 victims found |
 | Share of cruise flight flown by the learned pilot | **80–90 %** |
 | Safety shield had to step in | **0.6–5 %** of the time |
 
