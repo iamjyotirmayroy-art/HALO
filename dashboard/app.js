@@ -32,12 +32,19 @@ function noImagery(img) {   // the placeholder is flat light grey; real photos n
     return m > 540 && sd < 45 && sat / g.length < 12;
   } catch (e) { return false; }
 }
+let lowAt = null;   // where the photo zoom was lowered: moving well away from there tries the sharpest photos again
 imagery.on("tileload", e => {
   const z = e.coords.z;
   if (z > 12 && z <= imagery.options.maxNativeZoom && noImagery(e.tile)) {
+    e.tile.style.visibility = "hidden";               // never flash the grey tile
     imagery.options.maxNativeZoom = z - 1;
+    lowAt = map.getCenter();
     imagery.redraw();
   }
+});
+function sharpestPhotos() { imagery.options.maxNativeZoom = 19; lowAt = null; }
+map.on("moveend", () => {
+  if (lowAt && map.distance(map.getCenter(), lowAt) > 3000) { sharpestPhotos(); imagery.redraw(); }
 });
 const tiles = {
   "Street map": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -497,7 +504,7 @@ async function searchPlace(q, box) {
     box.onclick = ev => {
       const p = res[ev.target.closest("[data-i]")?.dataset.i]; if (!p) return;
       const b = p.boundingbox.map(Number);
-      imagery.options.maxNativeZoom = 19;               // new place: try the sharpest photos again
+      sharpestPhotos();                                  // new place: try the sharpest photos again
       map.flyToBounds([[b[0], b[2]], [b[1], b[3]]], { maxZoom: 17 });
       placeName = p.display_name.split(",").slice(0, 2).join(",");
       $("wiz-place").textContent = "📍 " + placeName;
