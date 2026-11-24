@@ -84,7 +84,7 @@ A web app for the rescue team that also installs as a phone app. All data stays 
 <td width="50%"><img src="docs/screenshots/dash-victim-check.jpg" alt="AI victim check"><br><b>AI victim check.</b> Thermal image and drone photo side by side, with YOLOv8's boxes, its confidence, and Confirm / Not a person / Send team buttons.</td>
 </tr>
 <tr>
-<td><img src="docs/screenshots/dash-rescue-routes.jpg" alt="Rescue routes"><br><b>Rescue routes.</b> Safe routes (green) for every team. Unsafe direct routes (red dashed) are labelled with the reason: radiation dose or an unstable structure.</td>
+<td><img src="docs/screenshots/dash-rescue-routes.jpg" alt="Rescue routes"><br><b>Rescue routes.</b> Each new safe route (green) draws itself across the map from the base to the victim. Unsafe direct routes (red dashed) are labelled with the reason: radiation dose or an unstable structure.</td>
 <td><img src="docs/screenshots/4-camera-wall.png" alt="Live camera wall"><br><b>Live camera wall.</b> Watch one, several or all online drones at once, in normal or thermal view, with AI boxes on people. Watching never changes what the drone does.</td>
 </tr>
 <tr>

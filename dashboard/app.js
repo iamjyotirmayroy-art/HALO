@@ -56,10 +56,11 @@ const label = (xy, html, group, w = 90) => L.marker(ll(...xy), { interactive: fa
   icon: L.divIcon({ className: "lbl", html, iconSize: [w, 14], iconAnchor: [w / 2, 7] }) }).addTo(group);
 
 let zoneOverlay = null, baseMarker = null;
+const drawnRoutes = new Set();
 function drawStatic() {
   Object.values(G).forEach(g => g.clearLayers());
   Object.keys(trailLines).forEach(k => delete trailLines[k]);
-  zoneOverlay = null; routesKey = "";
+  zoneOverlay = null; routesKey = ""; drawnRoutes.clear();
   const cells = a => new Set(a.map(String)), tall = cells(S.tall), weak = cells(S.weak), rubble = cells(S.rubble);
   gridOverlay(gridImage((i, j) => tall.has(i + "," + j) ? "rgba(170,182,200,.38)" : weak.has(i + "," + j) ? "rgba(255,140,26,.45)"
     : rubble.has(i + "," + j) ? "rgba(138,106,74,.35)" : S.radiation[i][j] > .15 ? `rgba(255,212,0,${Math.min(.65, S.radiation[i][j] / 3 * .7)})` : null), G.hazards);
@@ -121,8 +122,16 @@ function render(st) {
           .bindTooltip(`Direct route to ${vid} unsafe: ${esc(r.reason)}`).addTo(G.routes);
         label(r.direct[Math.floor(r.direct.length / 2)], `✖ ${esc(r.reason)}`, G.routes, 200);
       }
-      if (r.safe.length) L.polyline([ll(...S.base), ll(...S.entry), ...r.safe.map(p => ll(...p))], { color: "#2ecc71", weight: 3, opacity: .85 })
+      if (!r.safe.length) continue;
+      const pts = [ll(...S.base), ll(...S.entry), ...r.safe.map(p => ll(...p))];
+      L.polyline(pts, { color: "#04210f", weight: 7, opacity: .55, interactive: false }).addTo(G.routes);   // dark casing: readable on satellite
+      const line = L.polyline(pts, { color: "#2ecc71", weight: 3.5, opacity: .95, className: drawnRoutes.has(vid) ? "" : "route-draw" })
         .bindTooltip(`Safe route to ${vid} · ${esc(r.status)}`).addTo(G.routes);
+      if (!drawnRoutes.has(vid)) {   // new route: animate it being drawn from the base to the victim
+        drawnRoutes.add(vid);
+        const path = line.getElement(), len = path && path.getTotalLength();
+        if (len) { path.style.strokeDasharray = len; path.style.strokeDashoffset = len; }
+      }
     }
   }
 
