@@ -33,7 +33,7 @@
   <div class="actions">
     <button id="btn-fleet" title="Add drones and run pre-flight checks">🛩<span class="t"> Fleet</span> <b id="fleet-count" class="badge">0</b></button>
     <button id="btn-base" title="Click the map to place the rescue base">📍<span class="t"> Set rescue base</span></button>
-    <button id="btn-mission" class="primary">🔍<span class="t"> Search for humans</span></button>
+    <button id="btn-mission" class="primary">🚀<span class="t" id="btn-mission-t"> Start mission</span></button>
     <button id="btn-cams">📹<span class="t"> Cameras</span></button>
     <button id="btn-mute" title="Alert sound on/off">🔔</button>
   </div>
@@ -50,12 +50,23 @@
   <div id="map"></div>
   <div id="banner" class="banner" hidden></div>
   <div id="launch" class="card launch" hidden>
-    <h3>🔍 Search for humans</h3>
-    <p class="vmeta" id="launch-hint">Draw the disaster area on the map.</p>
-    <div class="row"><button data-draw="rect">▭ Rectangle</button><button data-draw="poly">⬠ Polygon</button><button id="draw-finish" hidden>✔ Finish</button></div>
-    <div class="row"><span>🛩 Ready drones: <b id="launch-ready">0</b> <a href="#" id="launch-fleet">manage fleet</a></span>
-      <label>Rescue teams <input id="n-teams" type="number" min="1" max="10" value="3"></label></div>
-    <div class="row"><button id="launch-go" class="primary" disabled>🚀 Launch</button><button id="launch-cancel">Cancel</button></div>
+    <div class="row between"><h3>🚀 New mission</h3><button id="launch-cancel" aria-label="Close">✕</button></div>
+    <ol class="steps">
+      <li id="st1"><b>Choose the place</b>
+        <form id="wiz-search" class="row" autocomplete="off"><input id="wiz-q" type="search" placeholder="Any city, town or address">
+          <button class="primary">Go</button></form>
+        <div id="wiz-results" class="results inline"></div><span class="vmeta" id="wiz-place"></span></li>
+      <li id="st2"><b>Add drones</b> <span class="vmeta" id="wiz-fleet">0 drones · 0 AI agents</span>
+        <div class="row"><button id="wiz-add">＋ Add drone</button><button id="wiz-add5">＋5</button>
+          <a href="#" id="launch-fleet">pre-flight checklist</a></div></li>
+      <li id="st3"><b>Draw the search area</b>
+        <p class="vmeta" id="launch-hint">The drones will only fly inside it.</p>
+        <div class="row"><button data-draw="rect">▭ Rectangle</button><button data-draw="poly">⬠ Polygon</button>
+          <button id="draw-finish" hidden>✔ Finish</button></div></li>
+      <li id="st4"><b>Go live</b>
+        <div class="row"><label>Rescue teams <input id="n-teams" type="number" min="1" max="10" value="3"></label>
+          <button id="launch-go" class="primary golive" disabled>🔴 Go live · <span id="launch-ready">0</span> drones</button></div></li>
+    </ol>
   </div>
   <div id="fleet" class="card fleet" hidden>
     <div class="row between"><h3>🛩 Fleet · pre-flight check</h3><button id="fleet-close" aria-label="Close">✕</button></div>

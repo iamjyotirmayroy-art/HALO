@@ -7,6 +7,7 @@ HALO dashboard server: local only, Python standard library only.
 
 API (everything is stored in simulation/results/):
     POST /api/mission  {area: [[lat, lon], ...], base: [lat, lon] | null, drones, teams}  start a mission there
+    POST /api/abort                                         stop the running mission (rescuer pressed Abort)
     POST /api/verify   {victim, person}                     rescuer's verdict on a victim photo
     POST /api/command  {type, drone | victim}               recall | takeover | release | snapshot | send_team
     POST /api/control  {drone, vx, vy, vz, yaw_rate}        manual flight stick, sent at 10 Hz
@@ -121,6 +122,26 @@ def fit_area(area, base=None):
                 base=[c / scale for c in to_m(*base)] if base else None)
 
 
+def abort_mission():
+    """Stop the simulation and mark the live state as an aborted, finished mission."""
+    if state["proc"] and state["proc"].poll() is None:
+        state["proc"].terminate()
+        state["proc"].wait()
+    path = os.path.join(RES, "live.json")
+    try:
+        with open(path) as f:
+            j = json.load(f)
+    except (OSError, ValueError):
+        return dict(ok=True)
+    st = j["state"]
+    st.update(final=True, aborted=True)
+    st["events"] = st.get("events", []) + [dict(t=st.get("t", 0), msg="⛔ Mission aborted by the rescuer", lvl="alarm")]
+    with open(path + ".tmp", "w") as f:
+        json.dump(j, f)
+    os.replace(path + ".tmp", path)
+    return dict(ok=True)
+
+
 def start_mission(req):
     """Start run_mission.py on the drawn area (stops any mission still running)."""
     spec = fit_area(req["area"], req.get("base"))
@@ -198,6 +219,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             route = self.path.rstrip("/")
             if route == "/api/mission":
                 return self._json(start_mission(req))
+            if route == "/api/abort":
+                return self._json(abort_mission())
             if route.startswith("/api/fleet/"):
                 return self._json(fleet_cmd(route.rsplit("/", 1)[1], req))
             if route == "/api/verify":
@@ -234,6 +257,8 @@ if __name__ == "__main__":
     ap.add_argument("--no-browser", action="store_true")
     a = ap.parse_args()
     os.makedirs(RES, exist_ok=True)
+    if os.path.exists(os.path.join(RES, "live.json")):          # start clean: no old mission on screen (replay.json stays)
+        os.remove(os.path.join(RES, "live.json"))
     httpd = http.server.ThreadingHTTPServer(("0.0.0.0", a.port), Handler)
     scheme = "http"
     if a.cert:

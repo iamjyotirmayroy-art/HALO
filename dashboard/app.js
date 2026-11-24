@@ -16,12 +16,34 @@ try { muted = localStorage.getItem("halo-muted") === "1"; } catch (e) { /* stora
 
 // ---------------- map ----------------
 const map = L.map("map", { maxZoom: 21, zoomSnap: 0.25 }).setView([22.5, 79], 5);     // opens on India
+// Satellite imagery is sharper in big cities than in small towns. Where Esri has no photo at a zoom level it sends a
+// grey "Map data not yet available" tile; we spot that tile and zoom the existing photo in instead (never a blank map).
+const imagery = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  { maxZoom: 21, maxNativeZoom: 19, crossOrigin: true, attribution: "Imagery © Esri" });
+const probe = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+probe.canvas.width = probe.canvas.height = 16;
+function noImagery(img) {   // the placeholder is flat light grey; real photos never are
+  try {
+    probe.drawImage(img, 0, 0, 16, 16);
+    const d = probe.getImageData(0, 0, 16, 16).data, g = [];
+    let sat = 0;
+    for (let i = 0; i < d.length; i += 4) { g.push(d[i] + d[i + 1] + d[i + 2]); sat += Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]); }
+    const m = g.reduce((s, v) => s + v, 0) / g.length, sd = Math.sqrt(g.reduce((s, v) => s + (v - m) ** 2, 0) / g.length);
+    return m > 540 && sd < 45 && sat / g.length < 12;
+  } catch (e) { return false; }
+}
+imagery.on("tileload", e => {
+  const z = e.coords.z;
+  if (z > 12 && z <= imagery.options.maxNativeZoom && noImagery(e.tile)) {
+    imagery.options.maxNativeZoom = z - 1;
+    imagery.redraw();
+  }
+});
 const tiles = {
   "Street map": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     { maxZoom: 21, maxNativeZoom: 19, attribution: "© OpenStreetMap contributors" }),
   "Satellite": L.layerGroup([   // satellite photo + place names on top, like Google Maps' satellite view
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      { maxZoom: 21, maxNativeZoom: 19, attribution: "Imagery © Esri" }),
+    imagery,
     L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
       { maxZoom: 21, maxNativeZoom: 19 })]),
 };
@@ -192,7 +214,8 @@ function render(st) {
 
   if (mode === "live") liveFeedback(st);
   sawRunning ||= !st.final;
-  if (st.final && sawRunning && !summaryShown) { summaryShown = true; showSummary(st); }   // only after watching it run
+  if (st.final && sawRunning && !summaryShown) { summaryShown = true; showSummary(st); }
+  if (st.final && mode === "live") missionButton();   // only after watching it run
 }
 
 function renderVictims() {
@@ -464,26 +487,71 @@ for (const [name, el] of [["move", $("stick-move")], ["alt", $("stick-alt")]]) {
 }
 
 // ---------------- place search, rescue base, drawing the area, launch ----------------
-$("search").onsubmit = async e => {
-  e.preventDefault();
-  const q = $("q").value.trim(); if (!q) return;
+let placeName = "";
+async function searchPlace(q, box) {
+  if (!q.trim()) return;
+  box.innerHTML = "<div>Searching…</div>";
   try {
-    const r = await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=5&q=" + encodeURIComponent(q));
-    const res = await r.json();
-    $("results").innerHTML = res.map((p, i) => `<div data-i="${i}">${esc(p.display_name)}</div>`).join("") || "<div>No place found</div>";
-    $("results").onclick = ev => {
+    const res = await (await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=6&q=" + encodeURIComponent(q))).json();
+    box.innerHTML = res.map((p, i) => `<div data-i="${i}">${esc(p.display_name)}</div>`).join("") || "<div>No place found. Try a nearby town</div>";
+    box.onclick = ev => {
       const p = res[ev.target.closest("[data-i]")?.dataset.i]; if (!p) return;
       const b = p.boundingbox.map(Number);
+      imagery.options.maxNativeZoom = 19;               // new place: try the sharpest photos again
       map.flyToBounds([[b[0], b[2]], [b[1], b[3]]], { maxZoom: 17 });
-      $("results").innerHTML = "";
+      placeName = p.display_name.split(",").slice(0, 2).join(",");
+      $("wiz-place").textContent = "📍 " + placeName;
+      box.innerHTML = $("results").innerHTML = $("wiz-results").innerHTML = "";
+      wizard();
     };
-  } catch (err) { $("results").innerHTML = "<div>Search needs an internet connection</div>"; }
-};
+  } catch (err) { box.innerHTML = "<div>Search needs an internet connection</div>"; }
+}
+$("search").onsubmit = e => { e.preventDefault(); searchPlace($("q").value, $("results")); };
+$("wiz-search").onsubmit = e => { e.preventDefault(); searchPlace($("wiz-q").value, $("wiz-results")); };
 
 let placing = false, draw = null, area = null;
 const drawStyle = { color: "#ffd166", weight: 2, dashArray: "6 4", fillOpacity: .08 };
 $("btn-base").onclick = () => { placing = true; map.getContainer().classList.add("drawing"); toast("Click the map to place the rescue base"); };
-$("btn-mission").onclick = () => { $("launch").hidden = false; $("fleet").hidden = true; fleetCall(); };
+// ---------------- mission flow: Start mission -> place -> drones -> area -> Go live; Abort; New mission ----------------
+const missionLive = () => mode === "live" && ST && !ST.final;
+function wizard() {   // tick off the 4 steps and highlight the next one
+  const done = [!!placeName, fleetReady > 0, !!area, false];
+  const cur = done.indexOf(false);
+  ["st1", "st2", "st3", "st4"].forEach((id, i) => { $(id).classList.toggle("done", done[i]); $(id).classList.toggle("cur", i === cur); });
+  $("launch-go").disabled = !(fleetReady && area);
+}
+function missionButton() {
+  const live = missionLive(), b = $("btn-mission");
+  b.classList.toggle("danger", live); b.classList.toggle("primary", !live);
+  b.firstChild.textContent = live ? "⛔" : "🚀";
+  $("btn-mission-t").textContent = live ? " Abort mission" : ST && ST.final ? " New mission" : " Start mission";
+}
+function newMission() {   // clear the last mission off the map and open the wizard
+  stopReplay();
+  Object.values(G).forEach(g => g.clearLayers());
+  if (zoneOverlay) zoneOverlay = null;
+  S = ST = null; lastT = -1; area = null; summaryShown = sawRunning = primed = false; seenAlerts.clear();
+  ["k-time", "k-cov", "k-found", "k-reached", "k-online"].forEach((id, i) => $(id).textContent = ["0.0 s", "0%", "0 / 0", "0", "0 / 0"][i]);
+  ["alerts", "drones", "teams", "victims", "feed"].forEach(id => $(id).innerHTML = id === "alerts" ? '<div class="empty">No alerts</div>' : "");
+  $("modal").hidden = true;
+  setMode("NO MISSION", "live");
+  settingUp = true;
+  $("launch").hidden = false; $("fleet").hidden = true;
+  fleetCall(null, null, true).then(wizard);
+  missionButton();
+}
+$("btn-mission").onclick = () => {
+  if (!missionLive()) return newMission();
+  openModal(`<h2 style="margin:0 0 8px">⛔ Abort mission?</h2><p class="vmeta">The drones stop searching and the mission ends.
+    Victims already found stay on the map.</p><div class="row end"><button id="abort-yes" class="danger">Abort mission</button></div>`);
+  $("abort-yes").onclick = async () => {
+    $("modal").hidden = true;
+    try { await fetch("/api/abort", { method: "POST" }); toast("⛔ Mission aborted"); }
+    catch (e) { toast("⚠ Dashboard server not reachable"); }
+  };
+};
+$("wiz-add").onclick = () => fleetCall("add", {}).then(fleetPoll);
+$("wiz-add5").onclick = async () => { for (let i = 0; i < 5; i++) await fleetCall("add", {}); fleetPoll(); };
 $("launch-cancel").onclick = () => { $("launch").hidden = true; draw = area = null; G.draw.clearLayers(); map.getContainer().classList.remove("drawing"); map.doubleClickZoom.enable(); };
 document.querySelectorAll("[data-draw]").forEach(b => b.onclick = () => {
   G.draw.clearLayers(); area = null; draw = { kind: b.dataset.draw, pts: [] };
@@ -510,7 +578,7 @@ function finishDraw() {
   area = draw.kind === "rect" ? [b.getSouthWest(), b.getSouthEast(), b.getNorthEast(), b.getNorthWest()] : pts;
   draw = null; G.draw.clearLayers(); L.polygon(area, drawStyle).addTo(G.draw);
   map.getContainer().classList.remove("drawing"); map.doubleClickZoom.enable();
-  $("draw-finish").hidden = true; $("launch-go").disabled = !fleetReady;
+  $("draw-finish").hidden = true; wizard();
   const m2 = areaM2(area);
   $("launch-hint").textContent = `Area: ${m2 > 1e6 ? (m2 / 1e6).toFixed(2) + " km²" : Math.round(m2).toLocaleString() + " m²"}. `
     + (fleetReady ? `${fleetReady} drone${fleetReady > 1 ? "s" : ""} ready. Launch when set.` : "Add drones in Fleet first.");
@@ -539,6 +607,7 @@ $("launch-go").onclick = async () => {
     if (!j.ok) return toast("⚠ " + esc(j.error));
   } catch (e) { return toast("⚠ Dashboard server not reachable (run python dashboard/serve.py)"); }
   $("launch").hidden = true; area = null;
+  settingUp = false;
   stopReplay(); S = null; ST = null; lastT = -1; lastAck = lastSnap = 0; summaryShown = sawRunning = primed = false; seenAlerts.clear();
   setMode("🚀 LAUNCHING…", "live");
   toast("🚀 Swarm launching: the simulation is fitting the search area…", 5000);
@@ -550,7 +619,8 @@ function renderFleet(f) {
   fleetReady = f.ready;
   $("fleet-count").textContent = f.ready; $("fleet-count").classList.toggle("ok", f.ready > 0);
   $("launch-ready").textContent = f.ready;
-  if (area) $("launch-go").disabled = !f.ready;
+  $("wiz-fleet").textContent = `${f.total} drone${f.total === 1 ? "" : "s"} · ${f.total} AI agent${f.total === 1 ? "" : "s"} · ${f.ready} ready`;
+  wizard();
   const bad = f.drones.filter(d => d.status === "FAILED").length;
   $("fleet-sum").textContent = f.total ? `${f.total} connected · ${f.ready} ready${bad ? ` · ${bad} need attention` : ""}`
     : "No drones connected yet. Add as many as you have.";
@@ -588,7 +658,7 @@ fleetCall(null, null, true);
 function showSummary(st) {
   const H = humans(st), reached = H.filter(v => v.reached_t).length, verified = st.victims.filter(v => v.photo && v.confidence < .5).length;
   const unsafe = Object.values(st.routes).filter(r => r.direct.length).length;
-  openModal(`<h2 style="margin:0 0 8px">✅ Mission summary</h2><div class="kpis" style="flex-wrap:wrap">
+  openModal(`<h2 style="margin:0 0 8px">${st.aborted ? "⛔ Mission aborted" : "✅ Mission summary"}</h2><div class="kpis" style="flex-wrap:wrap">
     <div class="kpi"><b>${H.length} / ${S.n_victims}</b><span>Victims found</span></div><div class="kpi"><b>${reached}</b><span>Reached by teams</span></div>
     <div class="kpi"><b>${(st.t / 60).toFixed(1)} min</b><span>Mission time</span></div>
     <div class="kpi"><b>${S.area_m2 > 1e6 ? (S.area_m2 / 1e6).toFixed(2) + " km²" : S.area_m2.toLocaleString() + " m²"}</b><span>Area · ${st.coverage.toFixed(0)}% searched</span></div>
@@ -600,18 +670,23 @@ function showSummary(st) {
 // ---------------- data: live polling or replay ----------------
 function setMode(text, cls) { const m = $("mode"); m.textContent = text; m.className = "pill " + cls; }
 const staticKey = s => JSON.stringify([s.origin, s.poly, s.base, s.n_drones, s.map_scale]);
-let progressAt = Date.now();
+let progressAt = Date.now(), wizardShown = false, settingUp = false;   // settingUp: wizard open, last mission cleared
 async function pollLive() {
   if (mode !== "live") return;
   try {
     const j = await (await fetch(DATA + "live.json?_=" + Date.now())).json();
+    if (settingUp) return setTimeout(pollLive, 500);      // a new mission is being set up: don't redraw the old one
     if (!S || staticKey(S) !== staticKey(j.static)) { S = j.static; lastT = -1; drawStatic(); }
     if (!ST || j.state.t !== ST.t) progressAt = Date.now();
     render(j.state);
     if (!$("camwall").hidden) renderWall(j.state);   // cameras and the pilot panel refresh on every poll
     if (pilot) renderPilot(j.state);
-    setMode(j.state.final ? "MISSION COMPLETE" : Date.now() - progressAt > 5000 ? "⏸ SIMULATION NOT RUNNING" : "● LIVE", "live");
-  } catch (e) { if (!$("mode").textContent.startsWith("🚀")) setMode(S ? "WAITING FOR SIMULATION…" : "NO MISSION · draw an area", "live"); }
+    setMode(j.state.aborted ? "⛔ MISSION ABORTED" : j.state.final ? "MISSION COMPLETE" : Date.now() - progressAt > 5000 ? "⏸ SIMULATION NOT RUNNING" : "● LIVE", "live");
+    missionButton();
+  } catch (e) {
+    if (!$("mode").textContent.startsWith("🚀")) setMode(S ? "WAITING FOR SIMULATION…" : "NO MISSION", "live");
+    if (!S && !wizardShown) { wizardShown = true; newMission(); }   // first visit: start with the mission wizard
+  }
   setTimeout(pollLive, 500);
 }
 let replayTimer = 0;
