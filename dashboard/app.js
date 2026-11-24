@@ -689,6 +689,7 @@ async function pollLive() {
   if (mode !== "live") return;
   try {
     const j = await (await fetch(DATA + "live.json?_=" + Date.now())).json();
+    if (mode !== "live") return;                      // switched to replay while this request was in flight
     if (!wizardShown) { wizardShown = true; newMission(); }   // every visit starts on the mission wizard
     if (settingUp) {   // keep a finished / frozen mission off screen; switch over only if a mission is really running
       if (j.state.final || setupT === null || j.state.t === setupT) { if (setupT === null) setupT = j.state.t; return setTimeout(pollLive, 500); }
@@ -702,6 +703,7 @@ async function pollLive() {
     setMode(j.state.aborted ? "⛔ MISSION ABORTED" : j.state.final ? "MISSION COMPLETE" : Date.now() - progressAt > 5000 ? "⏸ SIMULATION NOT RUNNING" : "● LIVE", "live");
     missionButton();
   } catch (e) {
+    if (mode !== "live") return;
     if (!$("mode").textContent.startsWith("🚀")) setMode(S ? "WAITING FOR SIMULATION…" : "NO MISSION", "live");
     if (!S && !wizardShown) { wizardShown = true; newMission(); }   // first visit: start with the mission wizard
   }
