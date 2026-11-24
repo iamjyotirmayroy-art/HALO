@@ -233,3 +233,4 @@ h3::before { content: ""; width: 3px; height: 11px; border-radius: 2px; backgrou
 .kpi { min-width: 66px; padding: 3px 7px; }
 .brand { padding-right: 2px; white-space: nowrap; }
 @media (max-width: 1600px) { .actions button:not(.primary) .t { display: none; } #scrub { width: 100px; } }
+.kpi b, .kpi span { white-space: nowrap; }
