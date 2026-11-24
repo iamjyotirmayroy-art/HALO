@@ -19,10 +19,13 @@ const map = L.map("map", { maxZoom: 21, zoomSnap: 0.25 }).setView([22.5, 79], 5)
 const tiles = {
   "Street map": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     { maxZoom: 21, maxNativeZoom: 19, attribution: "© OpenStreetMap contributors" }),
-  "Satellite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    { maxZoom: 21, maxNativeZoom: 19, attribution: "Imagery © Esri" }),
+  "Satellite": L.layerGroup([   // satellite photo + place names on top, like Google Maps' satellite view
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      { maxZoom: 21, maxNativeZoom: 19, attribution: "Imagery © Esri" }),
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+      { maxZoom: 21, maxNativeZoom: 19 })]),
 };
-tiles["Street map"].addTo(map);
+tiles["Satellite"].addTo(map);
 const G = Object.fromEntries(["base", "hazards", "zones", "routes", "links", "trails", "heat", "dyn", "draw"].map(k => [k, L.layerGroup().addTo(map)]));
 L.control.layers(tiles, { "☢ Hazards": G.hazards, "🧩 Zones & searched": G.zones, "🟢 Safe routes": G.routes,
   "📡 Radio links": G.links, "🛩 Drone trails": G.trails, "🔥 Thermal zones": G.heat },

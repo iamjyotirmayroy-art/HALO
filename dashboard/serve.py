@@ -63,8 +63,9 @@ def control(c):
 
 # ---------------- fleet + pre-flight checks ----------------
 # On hardware each step is answered by the drone (PX4 / sensors); here the simulated drones answer them
-# with realistic timing. Every 4th drone's thermal camera fails its first check to show the retry flow.
-CHECKS = ["Radio link", "Flight controller", "Position fix", "Motors", "Battery", "RGB camera",
+# with realistic timing. Each drone gets its own copy of the AI pilot agent (same code, one instance per drone).
+# Every 4th drone's thermal camera fails its first check to show the retry flow.
+CHECKS = ["Radio link", "Flight controller", "AI pilot agent", "Position fix", "Motors", "Battery", "RGB camera",
           "Thermal camera", "Obstacle sensors", "Wi-Fi/BLE scanner", "Mesh radio"]
 STEP_S = 0.45
 fleet = {"next": 0, "drones": []}
@@ -84,6 +85,8 @@ def fleet_view():
         for c in checks:
             if c["name"] == "Battery" and c["ok"]:
                 c["name"] = f"Battery {d['battery']}%"
+            elif c["name"] == "AI pilot agent" and c["ok"]:
+                c["name"] = f"AI agent A-{d['id'] + 1:02d} online"
         status = "FAILED" if fail is not None else "READY" if n == len(CHECKS) else "CHECKING"
         out.append(dict(id=d["id"], name=f"HALO-{d['id'] + 1:02d}", status=status, checks=checks))
     return dict(drones=out, ready=sum(d["status"] == "READY" for d in out), total=len(out))

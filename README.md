@@ -109,7 +109,7 @@ Simulated earthquake-hit city block (~100 m, at 1:8 scale): **20 hidden victims 
 ### 🖥️ Rescuer dashboard (web + installable phone app)
 | Feature | Description |
 |---|---|
-| **Fleet setup** | Add any number of drones. Each runs a **live pre-flight check** (link, flight controller, motors, battery, RGB camera, thermal camera, obstacle sensors, mesh radio) until it shows **🟢 Ready to fly**. |
+| **Fleet setup** | Add any number of drones. Each gets its **own AI pilot agent** (same code, one copy per drone) and runs a **live pre-flight check** (link, flight controller, AI agent, motors, battery, RGB camera, thermal camera, obstacle sensors, mesh radio) until it shows **🟢 Ready to fly**. |
 | **Real map** | Street and satellite maps of anywhere in the world, with place search. |
 | **Search for humans** | Draw the disaster area and launch. Watch zones, **live flight paths**, thermal red zones and **safe routes** draw on the map. |
 | **AI verdicts** | Thermal zones show *"AI checking…"* until they turn into confirmed person / body part / not a person, with the thermal image and photo. |
