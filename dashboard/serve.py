@@ -11,6 +11,8 @@ API (everything is stored in simulation/results/):
     POST /api/command  {type, drone | victim}               recall | takeover | release | snapshot | send_team
     POST /api/control  {drone, vx, vy, vz, yaw_rate}        manual flight stick, sent at 10 Hz
     POST /api/watch    {drones: [...]}                      cameras open on the dashboard (only those render)
+    GET  /api/fleet                                         fleet + live pre-flight checklist of every drone
+    POST /api/fleet/add | /api/fleet/remove {id} | /api/fleet/retry {id}
     GET  /api/cam/<N>[?mode=thermal]                        live MJPEG stream of drone N's camera
 Commands go to results/commands.json, which the running simulation polls.
 """
@@ -59,6 +61,49 @@ def control(c):
     update_commands(put)
 
 
+# ---------------- fleet + pre-flight checks ----------------
+# On hardware each step is answered by the drone (PX4 / sensors); here the simulated drones answer them
+# with realistic timing. Every 4th drone's thermal camera fails its first check to show the retry flow.
+CHECKS = ["Radio link", "Flight controller", "Position fix", "Motors", "Battery", "RGB camera",
+          "Thermal camera", "Obstacle sensors", "Wi-Fi/BLE scanner", "Mesh radio"]
+STEP_S = 0.45
+fleet = {"next": 0, "drones": []}
+
+
+def fleet_view():
+    now, out = time.time(), []
+    for d in fleet["drones"]:
+        done = int((now - d["t0"]) / STEP_S)
+        fail = d["fail"] if d["fail"] is not None and done > d["fail"] else None
+        n = fail if fail is not None else min(done, len(CHECKS))
+        checks = [dict(name=c, ok=True) for c in CHECKS[:n]]
+        if fail is not None:
+            checks.append(dict(name=CHECKS[fail], ok=False, msg=f"{CHECKS[fail]} not detected - check the cable"))
+        elif n < len(CHECKS):
+            checks.append(dict(name=CHECKS[n], ok=None))
+        for c in checks:
+            if c["name"] == "Battery" and c["ok"]:
+                c["name"] = f"Battery {d['battery']}%"
+        status = "FAILED" if fail is not None else "READY" if n == len(CHECKS) else "CHECKING"
+        out.append(dict(id=d["id"], name=f"HALO-{d['id'] + 1:02d}", status=status, checks=checks))
+    return dict(drones=out, ready=sum(d["status"] == "READY" for d in out), total=len(out))
+
+
+def fleet_cmd(route, req):
+    if route == "add":
+        i = fleet["next"]
+        fleet["next"] += 1
+        fleet["drones"].append(dict(id=i, t0=time.time(), battery=100 - (i * 7) % 15,
+                                    fail=CHECKS.index("Thermal camera") if i % 4 == 3 else None))
+    else:
+        d = next(d for d in fleet["drones"] if d["id"] == int(req["id"]))
+        if route == "remove":
+            fleet["drones"].remove(d)
+        else:
+            d.update(t0=time.time(), fail=None)
+    return fleet_view()
+
+
 def fit_area(area, base=None):
     """Fit the simulated search square onto a drawn lat/lon area: origin, scale and the area + base in sim metres."""
     pts = [(float(a), float(b)) for a, b in area]
@@ -86,7 +131,8 @@ def start_mission(req):
     with open(os.path.join(RES, "area.json"), "w") as f:
         json.dump(spec, f)
     update_commands(lambda j: j.clear())
-    n_drones, n_teams = (str(max(1, min(10, int(req.get(k, d))))) for k, d in (("drones", 6), ("teams", 3)))
+    n_drones = str(max(1, min(30, int(req.get("drones") or fleet_view()["ready"] or 1))))
+    n_teams = str(max(1, min(10, int(req.get("teams", 3)))))
     state["proc"] = subprocess.Popen(
         [sys.executable, "run_mission.py", "--area", os.path.join(RES, "area.json"), "--live", "--no-video",
          "--drones", n_drones, "--teams", n_teams], cwd=SIM,
@@ -114,6 +160,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_response(302)
             self.send_header("Location", "/dashboard/")
             self.end_headers()
+        elif self.path.startswith("/api/fleet"):
+            self._json(fleet_view())
         elif self.path.startswith("/api/cam/"):
             self.stream_cam()
         else:
@@ -147,6 +195,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             route = self.path.rstrip("/")
             if route == "/api/mission":
                 return self._json(start_mission(req))
+            if route.startswith("/api/fleet/"):
+                return self._json(fleet_cmd(route.rsplit("/", 1)[1], req))
             if route == "/api/verify":
                 queue(dict(type="verify", victim=str(req["victim"]), person=bool(req["person"])))
             elif route == "/api/command" and req.get("type") in COMMANDS:

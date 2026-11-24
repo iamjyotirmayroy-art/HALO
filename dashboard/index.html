@@ -31,6 +31,7 @@
     <div class="kpi"><b id="k-online">0 / 0</b><span>Drones online</span></div>
   </div>
   <div class="actions">
+    <button id="btn-fleet" title="Add drones and run pre-flight checks">🛩<span class="t"> Fleet</span> <b id="fleet-count" class="badge">0</b></button>
     <button id="btn-base" title="Click the map to place the rescue base">📍<span class="t"> Set rescue base</span></button>
     <button id="btn-mission" class="primary">🔍<span class="t"> Search for humans</span></button>
     <button id="btn-cams">📹<span class="t"> Cameras</span></button>
@@ -52,9 +53,15 @@
     <h3>🔍 Search for humans</h3>
     <p class="vmeta" id="launch-hint">Draw the disaster area on the map.</p>
     <div class="row"><button data-draw="rect">▭ Rectangle</button><button data-draw="poly">⬠ Polygon</button><button id="draw-finish" hidden>✔ Finish</button></div>
-    <div class="row"><label>Drones <input id="n-drones" type="number" min="1" max="10" value="6"></label>
+    <div class="row"><span>🛩 Ready drones: <b id="launch-ready">0</b> <a href="#" id="launch-fleet">manage fleet</a></span>
       <label>Rescue teams <input id="n-teams" type="number" min="1" max="10" value="3"></label></div>
     <div class="row"><button id="launch-go" class="primary" disabled>🚀 Launch</button><button id="launch-cancel">Cancel</button></div>
+  </div>
+  <div id="fleet" class="card fleet" hidden>
+    <div class="row between"><h3>🛩 Fleet · pre-flight check</h3><button id="fleet-close" aria-label="Close">✕</button></div>
+    <p class="vmeta" id="fleet-sum">No drones connected yet. Add as many as you have.</p>
+    <div class="row"><button id="fleet-add" class="primary">＋ Add drone</button><button id="fleet-add5">＋5</button></div>
+    <div id="fleet-list"></div>
   </div>
   <aside id="panel">
     <section id="sec-alerts"><h3>Alerts</h3><div id="alerts"><div class="empty">No alerts</div></div></section>

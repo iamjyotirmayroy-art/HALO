@@ -58,7 +58,7 @@ function drawStatic() {
   Object.keys(trailLines).forEach(k => delete trailLines[k]);
   zoneOverlay = null; routesKey = "";
   const cells = a => new Set(a.map(String)), tall = cells(S.tall), weak = cells(S.weak), rubble = cells(S.rubble);
-  gridOverlay(gridImage((i, j) => tall.has(i + "," + j) ? "rgba(154,163,173,.85)" : weak.has(i + "," + j) ? "rgba(255,140,26,.45)"
+  gridOverlay(gridImage((i, j) => tall.has(i + "," + j) ? "rgba(154,163,173,.6)" : weak.has(i + "," + j) ? "rgba(255,140,26,.45)"
     : rubble.has(i + "," + j) ? "rgba(138,106,74,.35)" : S.radiation[i][j] > .15 ? `rgba(255,212,0,${Math.min(.65, S.radiation[i][j] / 3 * .7)})` : null), G.hazards);
   L.circle(ll(...S.dead_zone.c), { radius: S.dead_zone.r * S.map_scale, color: "#b07cff", weight: 1.5, dashArray: "4 4", fillOpacity: .05 })
     .bindTooltip("No radio signal (debris shadow)").addTo(G.hazards);
@@ -104,7 +104,7 @@ function render(st) {
   // zones in each drone's colour, filled in as they are searched
   const url = gridImage((i, j) => {
     const k = i * S.n + j, z = st.zones ? st.zones[k] : ".", cov = st.covered[k] === "1";
-    return z !== "." ? rgba(color(z.charCodeAt(0) - 48), cov ? .42 : .14) : cov ? "rgba(59,140,255,.2)" : null;
+    return z !== "." ? rgba(color(z.charCodeAt(0) - 48), cov ? .28 : .08) : cov ? "rgba(59,140,255,.15)" : null;
   });
   if (zoneOverlay) zoneOverlay.setUrl(url); else zoneOverlay = gridOverlay(url, G.zones);
 
@@ -204,7 +204,7 @@ function renderAlerts(st) {
     text: `Last position (${s.pos[0]}, ${s.pos[1]}) at ${s.t}s · beacon active · zone re-assigned` }));
   st.heat.filter(h => !h.checked).forEach(h => A.push({ key: "heat" + h.id, cls: "heat", lvl: "heat",
     title: `🔥 Heat signal ${h.temp.toFixed(1)}°C`, text: `Drone ${h.drone} diving for a photo · 🤖 AI checking for a person or body part…` }));
-  st.victims.filter(v => v.status.includes("verify") && v.photo && !v.reached_t).forEach(v => A.push({ key: "ver" + v.id, cls: "verify", lvl: "verify",
+  st.victims.filter(v => v.status.startsWith("POSSIBLE") && v.photo && !v.reached_t).forEach(v => A.push({ key: "ver" + v.id, cls: "verify", lvl: "verify",
     title: `Verify ${v.id} · ${esc(v.label)} (${Math.round(v.confidence * 100)}% AI)`, text: "Look at the drone photo: person or not?", victim: v.id }));
   Object.entries(st.routes).filter(([, r]) => r.direct.length).forEach(([vid, r]) => A.push({ key: "route" + vid, cls: "route", lvl: "route",
     title: `Unsafe direct route to ${vid}`, text: `${esc(r.reason)} · team rerouted on a safe path` }));
@@ -471,7 +471,7 @@ $("search").onsubmit = async e => {
 let placing = false, draw = null, area = null;
 const drawStyle = { color: "#ffd166", weight: 2, dashArray: "6 4", fillOpacity: .08 };
 $("btn-base").onclick = () => { placing = true; map.getContainer().classList.add("drawing"); toast("Click the map to place the rescue base"); };
-$("btn-mission").onclick = () => { $("launch").hidden = false; };
+$("btn-mission").onclick = () => { $("launch").hidden = false; $("fleet").hidden = true; fleetCall(); };
 $("launch-cancel").onclick = () => { $("launch").hidden = true; draw = area = null; G.draw.clearLayers(); map.getContainer().classList.remove("drawing"); map.doubleClickZoom.enable(); };
 document.querySelectorAll("[data-draw]").forEach(b => b.onclick = () => {
   G.draw.clearLayers(); area = null; draw = { kind: b.dataset.draw, pts: [] };
@@ -498,9 +498,10 @@ function finishDraw() {
   area = draw.kind === "rect" ? [b.getSouthWest(), b.getSouthEast(), b.getNorthEast(), b.getNorthWest()] : pts;
   draw = null; G.draw.clearLayers(); L.polygon(area, drawStyle).addTo(G.draw);
   map.getContainer().classList.remove("drawing"); map.doubleClickZoom.enable();
-  $("draw-finish").hidden = true; $("launch-go").disabled = false;
+  $("draw-finish").hidden = true; $("launch-go").disabled = !fleetReady;
   const m2 = areaM2(area);
-  $("launch-hint").textContent = `Area: ${m2 > 1e6 ? (m2 / 1e6).toFixed(2) + " km²" : Math.round(m2).toLocaleString() + " m²"}. Choose drones and teams, then Launch.`;
+  $("launch-hint").textContent = `Area: ${m2 > 1e6 ? (m2 / 1e6).toFixed(2) + " km²" : Math.round(m2).toLocaleString() + " m²"}. `
+    + (fleetReady ? `${fleetReady} drone${fleetReady > 1 ? "s" : ""} ready. Launch when set.` : "Add drones in Fleet first.");
 }
 $("draw-finish").onclick = () => draw && finishDraw();
 map.on("click", e => {
@@ -517,10 +518,11 @@ map.on("click", e => {
 map.on("mousemove", e => draw && draw.pts.length && preview(e.latlng));
 map.on("dblclick", () => draw && draw.kind === "poly" && finishDraw());
 $("launch-go").onclick = async () => {
+  if (!fleetReady) return toast("Add drones in Fleet and wait for 🟢 READY TO FLY");
   try {
     const r = await fetch("/api/mission", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
       area: area.map(p => [p.lat, p.lng]), base: baseMarker ? [baseMarker.getLatLng().lat, baseMarker.getLatLng().lng] : null,
-      drones: +$("n-drones").value, teams: +$("n-teams").value }) });
+      drones: fleetReady, teams: +$("n-teams").value }) });
     const j = await r.json();
     if (!j.ok) return toast("⚠ " + esc(j.error));
   } catch (e) { return toast("⚠ Dashboard server not reachable (run python dashboard/serve.py)"); }
@@ -529,6 +531,46 @@ $("launch-go").onclick = async () => {
   setMode("🚀 LAUNCHING…", "live");
   toast("🚀 Swarm launching: the simulation is fitting the search area…", 5000);
 };
+
+// ---------------- fleet: add drones, live pre-flight checklist ----------------
+let fleetReady = 0, fleetTimer = null;
+function renderFleet(f) {
+  fleetReady = f.ready;
+  $("fleet-count").textContent = f.ready; $("fleet-count").classList.toggle("ok", f.ready > 0);
+  $("launch-ready").textContent = f.ready;
+  if (area) $("launch-go").disabled = !f.ready;
+  const bad = f.drones.filter(d => d.status === "FAILED").length;
+  $("fleet-sum").textContent = f.total ? `${f.total} connected · ${f.ready} ready${bad ? ` · ${bad} need attention` : ""}`
+    : "No drones connected yet. Add as many as you have.";
+  const mark = c => c.ok === true ? "✅" : c.ok === false ? "❌" : "⏳";
+  const html = f.drones.map(d => `<div class="fdrone ${d.status}"><div class="top"><span>🛩 ${d.name}</span>
+    <span class="fstat">${d.status === "READY" ? "🟢 READY TO FLY" : d.status === "FAILED" ? "❌ CHECK FAILED" : "⏳ CHECKING…"}</span></div>
+    <ul class="checks">${d.checks.map(c => `<li class="${c.ok === false ? "bad" : ""}">${mark(c)} ${esc(c.msg || c.name)}</li>`).join("")}</ul>
+    <div class="acts">${d.status === "FAILED" ? `<button data-retry="${d.id}">↻ Retry</button>` : ""}<button data-remove="${d.id}">Remove</button></div></div>`).join("");
+  if ($("fleet-list").innerHTML !== html) $("fleet-list").innerHTML = html;   // re-render only on change, so clicks aren't lost
+}
+async function fleetCall(path, body) {
+  try {
+    const r = await fetch("/api/fleet" + (path ? "/" + path : ""), body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
+    const f = await r.json(); renderFleet(f);
+    return f;
+  } catch (e) { toast("⚠ Dashboard server not reachable (run python dashboard/serve.py)"); }
+}
+function fleetPoll() {   // poll while anything is still being checked
+  clearTimeout(fleetTimer);
+  fleetCall().then(f => { if (f && f.drones.some(d => d.status === "CHECKING")) fleetTimer = setTimeout(fleetPoll, 400); });
+}
+$("btn-fleet").onclick = () => { $("fleet").hidden = !$("fleet").hidden; fleetPoll(); };
+$("launch-fleet").onclick = e => { e.preventDefault(); $("fleet").hidden = false; fleetPoll(); };
+$("fleet-close").onclick = () => { $("fleet").hidden = true; };
+$("fleet-add").onclick = () => fleetCall("add", {}).then(fleetPoll);
+$("fleet-add5").onclick = async () => { for (let i = 0; i < 5; i++) await fleetCall("add", {}); fleetPoll(); };
+$("fleet-list").onclick = e => {
+  const r = e.target.dataset.retry, d = e.target.dataset.remove;
+  if (r) fleetCall("retry", { id: +r }).then(fleetPoll);
+  if (d) fleetCall("remove", { id: +d });
+};
+fleetCall();
 
 // ---------------- mission summary ----------------
 function showSummary(st) {

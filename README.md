@@ -82,8 +82,8 @@ Simulated earthquake-hit city block (~100 m, at 1:8 scale): **20 hidden victims 
 | Feature | Description |
 |---|---|
 | **Multi-agent AI** | A central **Command AI** coordinates the mission, and every drone runs its **own AI agent**, so each drone keeps working if the link drops. |
-| **Scales to any fleet size** | Add drones from 1 to N. The area is divided evenly and matched to drones optimally (Hungarian algorithm), and new drones can join mid-mission. |
-| **Self-healing swarm** | When a drone is lost, trapped, recharging or added mid-mission, unsearched areas are **re-split automatically**. |
+| **Scales to any fleet size** | Add drones from 1 to N in the dashboard. The area is divided evenly and matched to drones optimally (Hungarian algorithm). |
+| **Self-healing swarm** | When a drone is lost, trapped, recharging or rejoins, unsearched areas are **re-split automatically**. |
 | **Auto return-to-charge** | Each drone calculates when it must fly home, recharges, and rejoins the search. |
 | **Collision-free flight** | A **SafetyLayer** on every drone: obstacle sensing, drone-to-drone avoidance (ORCA), geofence, emergency landing. It stays on even under manual control. |
 | **Edge autonomy + mesh relay** | Out of radio range, drones relay through each other. In dead zones they search on their own and sync when they reconnect. |
@@ -141,8 +141,8 @@ Simulated earthquake-hit city block (~100 m, at 1:8 scale): **20 hidden victims 
 
 | Layer | Responsibility |
 |---|---|
-| `halo/` | Hardware-independent AI: agents, Command AI, SafetyLayer, planning, perception, comms |
-| `hal/` | Hardware abstraction: **PyBullet** backend now, **PX4 / MAVSDK** backend for real drones |
+| `simulation/agents.py`, `safety.py`, `planning.py`, `perception.py` | Control AI: drone agents, Command AI, SafetyLayer, planning, perception |
+| `simulation/` (world, run loop, cameras) | PyBullet scene and drone physics (gym-pybullet-drones). A PX4 / MAVSDK backend for real drones is planned |
 | `simulation/` | Disaster scene, mission runner, video and metrics |
 | `dashboard/` | Rescuer web app + local server |
 
@@ -162,11 +162,13 @@ More options: `simulation/README.md`.
 
 ### 🖥️ Using the rescuer dashboard
 
-Search a place (e.g. *Mumbai*) → **📍 Set rescue base** → **🔍 Search for humans** → draw the area (rectangle or polygon), pick the number of drones and rescue teams → **🚀 Launch**. The server fits the simulation onto that area and starts it, and everything streams live onto the map.
+**🛩 Fleet → ＋ Add drone** (as many as you have; each runs a live pre-flight check until 🟢 READY TO FLY) → search a place (e.g. *Mumbai*) → **📍 Set rescue base** → **🔍 Search for humans** → draw the area (rectangle or polygon), pick the rescue teams → **🚀 Launch** with every ready drone. The server fits the simulation onto that area and starts it, and everything streams live onto the map.
 
-| Draw the area | Live mission | Victim check |
+| Fleet pre-flight check | Draw the area | Live mission |
 |---|---|---|
-| ![Draw the area](docs/screenshots/1-draw-area.png) | ![Live mission](docs/screenshots/2-live-mission.png) | ![Victim verification](docs/screenshots/3-victim-verify.png) |
+| ![Fleet pre-flight check](docs/screenshots/0-fleet.png) | ![Draw the area](docs/screenshots/1-draw-area.png) | ![Live mission](docs/screenshots/2-live-mission.png) |
+| **Victim check** | | |
+| ![Victim verification](docs/screenshots/3-victim-verify.png) | | |
 | **Camera wall** | **Manual control** | **Phone app** |
 | ![Camera wall](docs/screenshots/4-camera-wall.png) | ![Manual control](docs/screenshots/5-manual-control.png) | ![Phone](docs/screenshots/6-phone.png) |
 
@@ -202,7 +204,7 @@ The anti-crash tests fly a drone at full speed into a wall and at another drone,
 | Mesh network model | ESP-NOW / LoRa mesh radio |
 | Charging pads | Landing pads with charging contacts |
 
-The control AI talks to drones only through the `hal/` interface, so **the same code flies simulated and real drones**.
+The control AI only sends velocity set-points and reads sensor data, so moving to real drones means swapping the PyBullet backend for a PX4 / MAVSDK one. The AI code stays the same.
 
 ---
 
@@ -216,7 +218,7 @@ The control AI talks to drones only through the `hal/` interface, so **the same 
 | SafetyLayer with ORCA + rangefinder sensing, 0-collision test suite | 🚧 In progress |
 | YOLOv8 photo verification (people + body parts) | 🚧 In progress |
 | Dashboard: Search for humans, live flight paths, victim verification, camera wall, manual takeover, alerts, PWA | ✅ Done |
-| Dashboard: fleet setup + live pre-flight check | 🚧 In progress |
+| Dashboard: fleet setup + live pre-flight check | ✅ Done |
 | Relief drops, real-hardware backend (PX4) | 🔜 Planned |
 
 > **Note on the simulation:** photos and thermal frames are rendered from the 3D scene. The aftershock is a scripted event, and charging is sped up for the demo.

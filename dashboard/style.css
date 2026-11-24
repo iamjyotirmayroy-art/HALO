@@ -177,3 +177,21 @@ section { padding: 10px 12px; border-bottom: 1px solid var(--line); }
   .camgrid .tile { flex: 0 0 100%; scroll-snap-align: center; }
   .sticks { padding: 8px; } .keys { display: none; } .stick { width: 120px; height: 120px; }
 }
+
+/* fleet setup */
+.fleet { position: absolute; top: 12px; left: 56px; z-index: 1001; width: 340px; max-height: calc(100% - 24px); overflow-y: auto; }
+.row.between { justify-content: space-between; align-items: center; }
+.badge { background: var(--panel2); border-radius: 999px; padding: 0 7px; font-size: 11px; }
+.badge.ok { background: rgba(46,204,113,.2); color: var(--green); }
+.fdrone { border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin-top: 8px; background: var(--panel2); }
+.fdrone .top { display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
+.fdrone.READY { border-color: rgba(46,204,113,.6); }
+.fdrone.FAILED { border-color: rgba(255,77,79,.7); }
+.fstat { font-size: 11px; font-weight: 800; }
+.READY .fstat { color: var(--green); } .FAILED .fstat { color: var(--red); } .CHECKING .fstat { color: var(--amber); }
+.checks { list-style: none; margin: 6px 0 0; padding: 0; font-size: 12px; columns: 2; column-gap: 10px; }
+.checks li { break-inside: avoid; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.checks .bad { color: var(--red); column-span: all; white-space: normal; }
+.fdrone .acts { display: flex; gap: 6px; margin-top: 6px; }
+.fdrone .acts button { padding: 2px 8px; font-size: 12px; }
+a { color: var(--blue); }

@@ -32,3 +32,21 @@ def test_commands_keep_increasing_and_controls_are_clamped(tmp_path, monkeypatch
     monkeypatch.setitem(serve.state, "seq", 0)            # server restart: numbering continues from the file
     serve.queue(dict(type="snapshot", drone=0))
     assert json.load(open(serve.CMD))["queue"][-1]["seq"] == 4
+
+
+def test_fleet_preflight_ready_fail_retry_remove(monkeypatch):
+    monkeypatch.setattr(serve, "fleet", {"next": 0, "drones": []})
+    clock = [1000.0]
+    monkeypatch.setattr(serve.time, "time", lambda: clock[0])
+    for _ in range(4):
+        serve.fleet_cmd("add", {})
+    assert serve.fleet_view()["drones"][0]["status"] == "CHECKING"
+    clock[0] += serve.STEP_S * (len(serve.CHECKS) + 1)
+    v = serve.fleet_view()
+    assert (v["total"], v["ready"]) == (4, 3)                      # every 4th drone's thermal camera fails first
+    bad = v["drones"][3]
+    assert bad["status"] == "FAILED" and bad["checks"][-1]["name"] == "Thermal camera"
+    serve.fleet_cmd("retry", {"id": 3})
+    clock[0] += serve.STEP_S * (len(serve.CHECKS) + 1)
+    assert serve.fleet_view()["ready"] == 4
+    assert serve.fleet_cmd("remove", {"id": 0})["total"] == 3
