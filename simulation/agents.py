@@ -134,11 +134,14 @@ class DroneAgent:
             over = np.array([s.pos[0] - 0.05, s.pos[1]])
             if inv["phase"] == "dive":
                 self.target = np.array([over[0], over[1], C.INSPECT_ALT])
+                # photo for the AI from ~1 m up (whole scene in frame), then a close thermal look lower down
+                if "shot" not in inv and np.linalg.norm(self.xy - over) < 0.15 and self.pos[2] < C.PHOTO_ALT:
+                    inv["shot"] = True
+                    self.photograph(sim, s, inv["temp"], self.pos - np.array([0.0, 0.0, 0.04]), [*s.pos, 0.0])
                 if np.linalg.norm(self.pos - self.target) < 0.12:
                     inv["phase"] = "photo"; inv["t_photo"] = sim.t
             elif inv["phase"] == "photo":
                 if sim.t - inv["t_photo"] > 0.5:
-                    self.photograph(sim, s, inv["temp"], self.pos - np.array([0.0, 0.0, 0.04]), [*s.pos, 0.0])
                     inv["phase"] = "climb"
                     if w.inside_weak(self.xy, margin=0.1):
                         self.inspect_inside_t = sim.t
@@ -179,13 +182,13 @@ class DroneAgent:
     def photograph(self, sim, s, temp, eye, target):
         """Photo + thermal of heat source s, AI check, report to Command AI (buffered if offline)."""
         path = f"{sim.out}/photos/{s.id}_drone{self.id}.png"
-        P.take_photo(sim.client, eye, target, sim.world.sources, path)
+        dets = P.take_photo(sim.client, eye, target, sim.world.sources, path)
         s.reported = True
         trapped = s.kind in ("hand", "foot", "head") or sim.world.inside_weak(s.pos)
         self.report(sim, dict(type="victim", id=s.id, pos=s.pos.round(2).tolist(), photo=path,
                               thermal=path.replace(".png", "_thermal.png"), drone=self.id, t=round(sim.t, 1),
                               trapped=trapped, source="thermal+camera", is_human=s.is_human, kind=s.kind,
-                              **P.ai_check(s, temp, sim.rng)))
+                              **P.ai_check(s, temp, sim.rng, dets)))
 
     def home_route(self, sim):
         return flight_path(sim.fly_blocked, self.xy, C.stage(self.pad)) + [self.pad]

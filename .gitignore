@@ -9,3 +9,4 @@ simulation/results/commands.json*
 simulation/results/area.json
 simulation/results/mission.log
 simulation/results/*.tmp
+vision_data/

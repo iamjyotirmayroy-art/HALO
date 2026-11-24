@@ -1,6 +1,6 @@
 {
   "drones": 6,
-  "mission_time_s": 257.9,
+  "mission_time_s": 245.2,
   "area_searched_pct": 100.0,
   "victims_total": 20,
   "victims_found": 20,
@@ -9,24 +9,27 @@
   "partial_body_victims_found": 7,
   "heat_signals_discarded": 0,
   "decoys_sent_for_verification": 3,
-  "time_first_victim_s": 4.5,
-  "time_all_thermal_victims_s": 62.8,
+  "time_first_victim_s": 3.9,
+  "time_all_thermal_victims_s": 61.0,
   "phone_location_error_m": {
-    "V1": 0.32,
-    "V3": 0.36,
+    "V1": 0.3,
+    "V3": 0.72,
     "V5": 0.1,
     "V7": 0.5,
-    "V8": 0.1,
+    "V8": 0.2,
     "V11": 0.1,
     "V14": 0.1,
-    "V18": 0.4,
+    "V18": 0.32,
     "V19": 0.64
   },
-  "rerouted_routes": 3,
+  "rerouted_routes": 4,
   "rescue_teams": 3,
   "victims_reached_by_rescuers": 20,
-  "mean_detection_to_rescuer_s": 69.6,
+  "mean_detection_to_rescuer_s": 76.1,
   "false_alarms_dismissed_by_rescuer": 3,
+  "ai_detector": "YOLOv8n (HALO, trained on synthetic rubble scenes)",
+  "ai_people_detected": "16/17",
+  "ai_decoys_called_person": 0,
   "sos_events": [
     {
       "drone": 3,
@@ -49,19 +52,19 @@
       "photo": "results/photos/V5_drone3.png",
       "thermal": "results/photos/V5_drone3_thermal.png",
       "drone": 3,
-      "t": 24.0,
+      "t": 18.0,
       "trapped": true,
       "source": "thermal+camera",
       "is_human": true,
       "kind": "person",
       "label": "person",
-      "confidence": 0.99,
+      "confidence": 0.97,
       "status": "CONFIRMED VICTIM",
       "body_temp_like": true,
-      "measured_temp": 35.4,
-      "t_sent": 24.0,
-      "priority": 80,
-      "t_detected": 23.999999999999726,
+      "measured_temp": 35.0,
+      "t_sent": 18.0,
+      "priority": 79,
+      "t_detected": 18.250000000000053,
       "route": {
         "status": "SAFE ROUTE",
         "direct": {
@@ -127,42 +130,39 @@
         ]
       ],
       "rescue_team": "R3",
-      "reached_t": 40.5,
-      "response_s": 16.5
+      "reached_t": 37.7,
+      "response_s": 19.4
     },
     {
       "type": "victim",
-      "id": "V2",
+      "id": "V14",
       "pos": [
-        5.9,
-        2.6
+        7.0,
+        4.5
       ],
-      "photo": "results/photos/V2_drone0.png",
-      "thermal": "results/photos/V2_drone0_thermal.png",
-      "drone": 0,
-      "t": 23.2,
+      "source": "phone",
       "trapped": true,
-      "source": "thermal+camera",
+      "label": "phone signal only - likely BURIED (no thermal/visual)",
+      "confidence": 0.6,
+      "status": "LIKELY VICTIM - phone signal",
+      "measured_temp": null,
       "is_human": true,
-      "kind": "hand",
-      "label": "body part: hand/arm",
-      "confidence": 0.77,
-      "status": "LIKELY VICTIM - please verify",
-      "body_temp_like": true,
-      "measured_temp": 33.0,
-      "t_sent": 23.2,
-      "priority": 66,
-      "t_detected": 23.24999999999977,
+      "kind": "buried",
+      "t": 65.0,
+      "drone": null,
+      "photo": null,
+      "priority": 74,
+      "t_detected": 65.00000000000267,
       "route": {
         "status": "SAFE ROUTE",
         "direct": {
-          "length_m": 6.9,
-          "dose": 0.0,
+          "length_m": 7.6,
+          "dose": 0.96,
           "unstable_cells": 0
         },
         "safe": {
-          "length_m": 6.9,
-          "dose": 0.0,
+          "length_m": 7.6,
+          "dose": 0.96,
           "unstable_cells": 0
         },
         "note": ""
@@ -202,28 +202,40 @@
         ],
         [
           3.75,
-          4.25
+          4.75
         ],
         [
           4.25,
-          3.75
+          4.75
         ],
         [
           4.75,
-          3.25
+          4.75
         ],
         [
           5.25,
-          3.25
+          4.75
         ],
         [
           5.75,
-          2.75
+          4.75
+        ],
+        [
+          6.25,
+          4.75
+        ],
+        [
+          6.75,
+          4.75
+        ],
+        [
+          7.25,
+          4.75
         ]
       ],
-      "rescue_team": "R2",
-      "reached_t": 41.9,
-      "response_s": 18.6
+      "rescue_team": "R1",
+      "reached_t": 90.9,
+      "response_s": 25.9
     },
     {
       "type": "victim",
@@ -235,26 +247,26 @@
       "photo": "results/photos/V17_drone5.png",
       "thermal": "results/photos/V17_drone5_thermal.png",
       "drone": 5,
-      "t": 19.2,
+      "t": 11.6,
       "trapped": true,
       "source": "thermal+camera",
       "is_human": true,
       "kind": "hand",
       "label": "body part: hand/arm",
-      "confidence": 0.72,
-      "status": "LIKELY VICTIM - please verify",
+      "confidence": 0.96,
+      "status": "CONFIRMED VICTIM",
       "body_temp_like": true,
-      "measured_temp": 33.8,
-      "t_sent": 19.2,
+      "measured_temp": 33.9,
+      "t_sent": 11.6,
       "relayed_hops": 1,
-      "priority": 64,
-      "t_detected": 19.249999999999996,
+      "priority": 73,
+      "t_detected": 11.75000000000006,
       "route": {
-        "status": "SAFE ROUTE",
+        "status": "REROUTED (direct route unsafe)",
         "direct": {
           "length_m": 8.7,
-          "dose": 0.05,
-          "unstable_cells": 0
+          "dose": 0.02,
+          "unstable_cells": 1
         },
         "safe": {
           "length_m": 8.7,
@@ -334,83 +346,8 @@
         ]
       ],
       "rescue_team": "R1",
-      "reached_t": 54.7,
-      "response_s": 35.4
-    },
-    {
-      "type": "victim",
-      "id": "V4",
-      "pos": [
-        3.4,
-        6.6
-      ],
-      "photo": "results/photos/V4_drone3.png",
-      "thermal": "results/photos/V4_drone3_thermal.png",
-      "drone": 3,
-      "t": 13.0,
-      "trapped": true,
-      "source": "thermal+camera",
-      "is_human": true,
-      "kind": "foot",
-      "label": "body part: foot/leg",
-      "confidence": 0.65,
-      "status": "LIKELY VICTIM - please verify",
-      "body_temp_like": true,
-      "measured_temp": 31.9,
-      "t_sent": 13.0,
-      "priority": 61,
-      "t_detected": 13.250000000000103,
-      "route": {
-        "status": "SAFE ROUTE",
-        "direct": {
-          "length_m": 3.2,
-          "dose": 0.0,
-          "unstable_cells": 0
-        },
-        "safe": {
-          "length_m": 3.2,
-          "dose": 0.0,
-          "unstable_cells": 0
-        },
-        "note": ""
-      },
-      "route_path": [
-        [
-          0.25,
-          6.0
-        ],
-        [
-          0.25,
-          6.25
-        ],
-        [
-          0.75,
-          6.75
-        ],
-        [
-          1.25,
-          6.75
-        ],
-        [
-          1.75,
-          6.75
-        ],
-        [
-          2.25,
-          6.75
-        ],
-        [
-          2.75,
-          6.75
-        ],
-        [
-          3.25,
-          6.75
-        ]
-      ],
-      "rescue_team": "R3",
-      "reached_t": 19.9,
-      "response_s": 6.6
+      "reached_t": 29.4,
+      "response_s": 17.6
     },
     {
       "type": "victim",
@@ -422,19 +359,19 @@
       "photo": "results/photos/V10_drone0.png",
       "thermal": "results/photos/V10_drone0_thermal.png",
       "drone": 0,
-      "t": 16.8,
+      "t": 14.7,
       "trapped": true,
       "source": "thermal+camera",
       "is_human": true,
       "kind": "hand",
       "label": "body part: hand/arm",
-      "confidence": 0.66,
-      "status": "LIKELY VICTIM - please verify",
+      "confidence": 0.87,
+      "status": "CONFIRMED VICTIM",
       "body_temp_like": true,
-      "measured_temp": 33.1,
-      "t_sent": 16.8,
-      "priority": 61,
-      "t_detected": 17.000000000000124,
+      "measured_temp": 33.7,
+      "t_sent": 14.7,
+      "priority": 70,
+      "t_detected": 14.750000000000146,
       "route": {
         "status": "SAFE ROUTE",
         "direct": {
@@ -511,9 +448,451 @@
           0.75
         ]
       ],
+      "rescue_team": "R2",
+      "reached_t": 42.7,
+      "response_s": 27.9
+    },
+    {
+      "type": "victim",
+      "id": "V2",
+      "pos": [
+        5.9,
+        2.6
+      ],
+      "photo": "results/photos/V2_drone0.png",
+      "thermal": "results/photos/V2_drone0_thermal.png",
+      "drone": 0,
+      "t": 21.9,
+      "trapped": true,
+      "source": "thermal+camera",
+      "is_human": true,
+      "kind": "hand",
+      "label": "body part: hand/arm",
+      "confidence": 0.87,
+      "status": "CONFIRMED VICTIM",
+      "body_temp_like": true,
+      "measured_temp": 33.4,
+      "t_sent": 21.9,
+      "priority": 70,
+      "t_detected": 21.99999999999984,
+      "route": {
+        "status": "SAFE ROUTE",
+        "direct": {
+          "length_m": 6.9,
+          "dose": 0.0,
+          "unstable_cells": 0
+        },
+        "safe": {
+          "length_m": 6.9,
+          "dose": 0.0,
+          "unstable_cells": 0
+        },
+        "note": ""
+      },
+      "route_path": [
+        [
+          0.25,
+          6.0
+        ],
+        [
+          0.25,
+          6.25
+        ],
+        [
+          0.75,
+          6.25
+        ],
+        [
+          1.25,
+          6.25
+        ],
+        [
+          1.75,
+          6.25
+        ],
+        [
+          2.25,
+          5.75
+        ],
+        [
+          2.75,
+          5.25
+        ],
+        [
+          3.25,
+          4.75
+        ],
+        [
+          3.75,
+          4.25
+        ],
+        [
+          4.25,
+          3.75
+        ],
+        [
+          4.75,
+          3.25
+        ],
+        [
+          5.25,
+          3.25
+        ],
+        [
+          5.75,
+          2.75
+        ]
+      ],
+      "rescue_team": "R1",
+      "reached_t": 61.1,
+      "response_s": 39.1
+    },
+    {
+      "type": "victim",
+      "id": "V15",
+      "pos": [
+        0.6,
+        7.2
+      ],
+      "photo": "results/photos/V15_drone4.png",
+      "thermal": "results/photos/V15_drone4_thermal.png",
+      "drone": 4,
+      "t": 3.9,
+      "trapped": true,
+      "source": "thermal+camera",
+      "is_human": true,
+      "kind": "foot",
+      "label": "person",
+      "confidence": 0.64,
+      "status": "LIKELY VICTIM - please verify",
+      "body_temp_like": true,
+      "measured_temp": 30.1,
+      "t_sent": 3.9,
+      "priority": 61,
+      "t_detected": 4.000000000000011,
+      "route": {
+        "status": "SAFE ROUTE",
+        "direct": {
+          "length_m": 1.2,
+          "dose": 0.0,
+          "unstable_cells": 0
+        },
+        "safe": {
+          "length_m": 1.2,
+          "dose": 0.0,
+          "unstable_cells": 0
+        },
+        "note": ""
+      },
+      "route_path": [
+        [
+          0.25,
+          6.0
+        ],
+        [
+          0.25,
+          6.25
+        ],
+        [
+          0.75,
+          6.75
+        ],
+        [
+          0.75,
+          7.25
+        ]
+      ],
+      "rescue_team": "R1",
+      "reached_t": 7.3,
+      "response_s": 3.3
+    },
+    {
+      "type": "victim",
+      "id": "V6",
+      "pos": [
+        11.0,
+        11.1
+      ],
+      "photo": "results/photos/V6_drone5.png",
+      "thermal": "results/photos/V6_drone5_thermal.png",
+      "drone": 5,
+      "t": 35.3,
+      "trapped": true,
+      "source": "thermal+camera",
+      "is_human": true,
+      "kind": "head",
+      "label": "body part: head",
+      "confidence": 0.98,
+      "status": "CONFIRMED VICTIM",
+      "body_temp_like": true,
+      "measured_temp": 34.2,
+      "t_sent": 35.3,
+      "relayed_hops": 2,
+      "priority": 59,
+      "t_detected": 40.00000000000018,
+      "route": {
+        "status": "SAFE ROUTE",
+        "direct": {
+          "length_m": 13.1,
+          "dose": 0.05,
+          "unstable_cells": 0
+        },
+        "safe": {
+          "length_m": 13.1,
+          "dose": 0.05,
+          "unstable_cells": 0
+        },
+        "note": ""
+      },
+      "route_path": [
+        [
+          0.25,
+          6.0
+        ],
+        [
+          0.25,
+          6.25
+        ],
+        [
+          0.75,
+          6.75
+        ],
+        [
+          1.25,
+          7.25
+        ],
+        [
+          1.75,
+          7.75
+        ],
+        [
+          2.25,
+          7.75
+        ],
+        [
+          2.75,
+          7.75
+        ],
+        [
+          3.25,
+          7.75
+        ],
+        [
+          3.75,
+          8.25
+        ],
+        [
+          4.25,
+          8.25
+        ],
+        [
+          4.75,
+          8.25
+        ],
+        [
+          5.25,
+          8.25
+        ],
+        [
+          5.75,
+          8.25
+        ],
+        [
+          6.25,
+          8.25
+        ],
+        [
+          6.75,
+          8.25
+        ],
+        [
+          7.25,
+          8.75
+        ],
+        [
+          7.75,
+          9.25
+        ],
+        [
+          8.25,
+          9.75
+        ],
+        [
+          8.75,
+          10.25
+        ],
+        [
+          9.25,
+          10.25
+        ],
+        [
+          9.75,
+          10.25
+        ],
+        [
+          10.25,
+          10.25
+        ],
+        [
+          10.75,
+          10.75
+        ],
+        [
+          11.25,
+          11.25
+        ]
+      ],
       "rescue_team": "R3",
-      "reached_t": 68.6,
-      "response_s": 51.6
+      "reached_t": 74.7,
+      "response_s": 34.7
+    },
+    {
+      "type": "victim",
+      "id": "V12",
+      "pos": [
+        11.6,
+        0.5
+      ],
+      "photo": "results/photos/V12_drone4.png",
+      "thermal": "results/photos/V12_drone4_thermal.png",
+      "drone": 4,
+      "t": 61.0,
+      "trapped": true,
+      "source": "thermal+camera",
+      "is_human": true,
+      "kind": "head",
+      "label": "body part: head",
+      "confidence": 0.98,
+      "status": "CONFIRMED VICTIM",
+      "body_temp_like": true,
+      "measured_temp": 34.0,
+      "t_sent": 61.0,
+      "relayed_hops": 2,
+      "priority": 59,
+      "t_detected": 61.000000000002565,
+      "route": {
+        "status": "SAFE ROUTE",
+        "direct": {
+          "length_m": 13.8,
+          "dose": 0.01,
+          "unstable_cells": 0
+        },
+        "safe": {
+          "length_m": 14.1,
+          "dose": 0.02,
+          "unstable_cells": 0
+        },
+        "note": ""
+      },
+      "route_path": [
+        [
+          0.25,
+          6.0
+        ],
+        [
+          0.25,
+          6.25
+        ],
+        [
+          0.75,
+          6.25
+        ],
+        [
+          1.25,
+          6.25
+        ],
+        [
+          1.75,
+          6.25
+        ],
+        [
+          2.25,
+          5.75
+        ],
+        [
+          2.75,
+          5.25
+        ],
+        [
+          3.25,
+          4.75
+        ],
+        [
+          3.75,
+          4.25
+        ],
+        [
+          4.25,
+          3.75
+        ],
+        [
+          4.75,
+          3.25
+        ],
+        [
+          5.25,
+          3.25
+        ],
+        [
+          5.75,
+          3.25
+        ],
+        [
+          6.25,
+          2.75
+        ],
+        [
+          6.75,
+          2.25
+        ],
+        [
+          6.75,
+          1.75
+        ],
+        [
+          7.25,
+          1.25
+        ],
+        [
+          7.75,
+          0.75
+        ],
+        [
+          8.25,
+          0.75
+        ],
+        [
+          8.75,
+          0.75
+        ],
+        [
+          9.25,
+          0.75
+        ],
+        [
+          9.75,
+          0.75
+        ],
+        [
+          10.25,
+          0.75
+        ],
+        [
+          10.75,
+          0.75
+        ],
+        [
+          11.25,
+          0.75
+        ],
+        [
+          11.75,
+          0.75
+        ]
+      ],
+      "rescue_team": "R3",
+      "reached_t": 125.5,
+      "response_s": 64.5
     },
     {
       "type": "victim",
@@ -525,20 +904,20 @@
       "photo": "results/photos/V3_drone4.png",
       "thermal": "results/photos/V3_drone4_thermal.png",
       "drone": 4,
-      "t": 47.8,
+      "t": 43.4,
       "trapped": false,
       "source": "thermal+camera",
       "is_human": true,
       "kind": "person",
       "label": "person",
-      "confidence": 0.99,
+      "confidence": 0.95,
       "status": "CONFIRMED VICTIM",
       "body_temp_like": true,
-      "measured_temp": 35.2,
-      "t_sent": 47.8,
+      "measured_temp": 35.1,
+      "t_sent": 43.4,
       "relayed_hops": 1,
-      "priority": 60,
-      "t_detected": 48.00000000000109,
+      "priority": 58,
+      "t_detected": 43.500000000000576,
       "route": {
         "status": "REROUTED (direct route unsafe)",
         "direct": {
@@ -688,73 +1067,14 @@
         ]
       ],
       "rescue_team": "R2",
-      "reached_t": 87.2,
-      "response_s": 39.2
-    },
-    {
-      "type": "victim",
-      "id": "V15",
-      "pos": [
-        0.6,
-        7.2
-      ],
-      "photo": "results/photos/V15_drone4.png",
-      "thermal": "results/photos/V15_drone4_thermal.png",
-      "drone": 4,
-      "t": 4.5,
-      "trapped": true,
-      "source": "thermal+camera",
-      "is_human": true,
-      "kind": "foot",
-      "label": "body part: foot/leg",
-      "confidence": 0.55,
-      "status": "LIKELY VICTIM - please verify",
-      "body_temp_like": true,
-      "measured_temp": 30.1,
-      "t_sent": 4.5,
-      "priority": 57,
-      "t_detected": 4.75,
-      "route": {
-        "status": "SAFE ROUTE",
-        "direct": {
-          "length_m": 1.2,
-          "dose": 0.0,
-          "unstable_cells": 0
-        },
-        "safe": {
-          "length_m": 1.2,
-          "dose": 0.0,
-          "unstable_cells": 0
-        },
-        "note": ""
-      },
-      "route_path": [
-        [
-          0.25,
-          6.0
-        ],
-        [
-          0.25,
-          6.25
-        ],
-        [
-          0.75,
-          6.75
-        ],
-        [
-          0.75,
-          7.25
-        ]
-      ],
-      "rescue_team": "R1",
-      "reached_t": 8.0,
-      "response_s": 3.3
+      "reached_t": 89.4,
+      "response_s": 45.9
     },
     {
       "type": "victim",
       "id": "V8",
       "pos": [
-        1.6,
+        1.5,
         4.9
       ],
       "source": "phone",
@@ -807,8 +1127,8 @@
         ]
       ],
       "rescue_team": "R1",
-      "reached_t": 78.3,
-      "response_s": 53.3
+      "reached_t": 112.6,
+      "response_s": 87.6
     },
     {
       "type": "victim",
@@ -898,144 +1218,43 @@
           11.75
         ]
       ],
-      "rescue_team": "R3",
-      "reached_t": 96.2,
-      "response_s": 71.2
-    },
-    {
-      "type": "victim",
-      "id": "V14",
-      "pos": [
-        6.9,
-        4.4
-      ],
-      "source": "phone",
-      "trapped": true,
-      "label": "phone signal only - likely BURIED (no thermal/visual)",
-      "confidence": 0.6,
-      "status": "LIKELY VICTIM - phone signal",
-      "measured_temp": null,
-      "is_human": true,
-      "kind": "buried",
-      "t": 65.0,
-      "drone": null,
-      "photo": null,
-      "priority": 54,
-      "t_detected": 65.00000000000267,
-      "route": {
-        "status": "SAFE ROUTE",
-        "direct": {
-          "length_m": 7.3,
-          "dose": 0.3,
-          "unstable_cells": 0
-        },
-        "safe": {
-          "length_m": 7.3,
-          "dose": 0.28,
-          "unstable_cells": 0
-        },
-        "note": ""
-      },
-      "route_path": [
-        [
-          0.25,
-          6.0
-        ],
-        [
-          0.25,
-          6.25
-        ],
-        [
-          0.75,
-          6.25
-        ],
-        [
-          1.25,
-          6.25
-        ],
-        [
-          1.75,
-          6.25
-        ],
-        [
-          2.25,
-          5.75
-        ],
-        [
-          2.75,
-          5.25
-        ],
-        [
-          3.25,
-          4.75
-        ],
-        [
-          3.75,
-          4.25
-        ],
-        [
-          4.25,
-          4.25
-        ],
-        [
-          4.75,
-          4.25
-        ],
-        [
-          5.25,
-          4.25
-        ],
-        [
-          5.75,
-          4.25
-        ],
-        [
-          6.25,
-          4.25
-        ],
-        [
-          6.75,
-          4.25
-        ]
-      ],
       "rescue_team": "R1",
-      "reached_t": 99.6,
-      "response_s": 34.6
+      "reached_t": 130.9,
+      "response_s": 105.9
     },
     {
       "type": "victim",
-      "id": "V12",
+      "id": "V4",
       "pos": [
-        11.6,
-        0.5
+        3.4,
+        6.6
       ],
-      "photo": "results/photos/V12_drone4.png",
-      "thermal": "results/photos/V12_drone4_thermal.png",
-      "drone": 4,
-      "t": 62.8,
+      "photo": "results/photos/V4_drone3.png",
+      "thermal": "results/photos/V4_drone3_thermal.png",
+      "drone": 3,
+      "t": 7.3,
       "trapped": true,
       "source": "thermal+camera",
       "is_human": true,
-      "kind": "head",
-      "label": "body part: head",
-      "confidence": 0.73,
-      "status": "LIKELY VICTIM - please verify",
+      "kind": "foot",
+      "label": "unclear (person?)",
+      "confidence": 0.14,
+      "status": "VERIFIED BY RESCUER",
       "body_temp_like": true,
-      "measured_temp": 34.3,
-      "t_sent": 62.8,
-      "relayed_hops": 2,
-      "priority": 49,
-      "t_detected": 63.00000000000279,
+      "measured_temp": 31.3,
+      "t_sent": 7.3,
+      "priority": 41,
+      "t_detected": 7.499999999999961,
       "route": {
         "status": "SAFE ROUTE",
         "direct": {
-          "length_m": 13.8,
-          "dose": 0.01,
+          "length_m": 3.2,
+          "dose": 0.0,
           "unstable_cells": 0
         },
         "safe": {
-          "length_m": 14.1,
-          "dose": 0.02,
+          "length_m": 3.2,
+          "dose": 0.0,
           "unstable_cells": 0
         },
         "note": ""
@@ -1051,139 +1270,67 @@
         ],
         [
           0.75,
-          6.25
+          6.75
         ],
         [
           1.25,
-          6.25
+          6.75
         ],
         [
           1.75,
-          6.25
+          6.75
         ],
         [
           2.25,
-          5.75
+          6.75
         ],
         [
           2.75,
-          5.25
+          6.75
         ],
         [
           3.25,
-          4.75
-        ],
-        [
-          3.75,
-          4.25
-        ],
-        [
-          4.25,
-          3.75
-        ],
-        [
-          4.75,
-          3.25
-        ],
-        [
-          5.25,
-          3.25
-        ],
-        [
-          5.75,
-          3.25
-        ],
-        [
-          6.25,
-          2.75
-        ],
-        [
-          6.75,
-          2.25
-        ],
-        [
-          6.75,
-          1.75
-        ],
-        [
-          7.25,
-          1.25
-        ],
-        [
-          7.75,
-          0.75
-        ],
-        [
-          8.25,
-          0.75
-        ],
-        [
-          8.75,
-          0.75
-        ],
-        [
-          9.25,
-          0.75
-        ],
-        [
-          9.75,
-          0.75
-        ],
-        [
-          10.25,
-          0.75
-        ],
-        [
-          10.75,
-          0.75
-        ],
-        [
-          11.25,
-          0.75
-        ],
-        [
-          11.75,
-          0.75
+          6.75
         ]
       ],
       "rescue_team": "R3",
-      "reached_t": 134.4,
-      "response_s": 71.4
+      "reached_t": 17.1,
+      "response_s": 9.6
     },
     {
       "type": "victim",
-      "id": "V6",
+      "id": "V7",
       "pos": [
-        11.0,
-        11.1
+        7.4,
+        11.3
       ],
-      "photo": "results/photos/V6_drone5.png",
-      "thermal": "results/photos/V6_drone5_thermal.png",
+      "photo": "results/photos/V7_drone5.png",
+      "thermal": "results/photos/V7_drone5_thermal.png",
       "drone": 5,
-      "t": 36.1,
-      "trapped": true,
+      "t": 23.7,
+      "trapped": false,
       "source": "thermal+camera",
       "is_human": true,
-      "kind": "head",
-      "label": "body part: head",
-      "confidence": 0.71,
-      "status": "LIKELY VICTIM - please verify",
+      "kind": "person",
+      "label": "person",
+      "confidence": 0.99,
+      "status": "CONFIRMED VICTIM",
       "body_temp_like": true,
-      "measured_temp": 34.4,
-      "t_sent": 36.1,
-      "relayed_hops": 2,
-      "priority": 48,
-      "t_detected": 40.00000000000018,
+      "measured_temp": 36.6,
+      "t_sent": 23.7,
+      "relayed_hops": 1,
+      "priority": 40,
+      "t_detected": 23.999999999999726,
       "route": {
         "status": "SAFE ROUTE",
         "direct": {
-          "length_m": 13.1,
-          "dose": 0.05,
+          "length_m": 10.5,
+          "dose": 0.04,
           "unstable_cells": 0
         },
         "safe": {
-          "length_m": 13.1,
-          "dose": 0.05,
+          "length_m": 10.8,
+          "dose": 0.0,
           "unstable_cells": 0
         },
         "note": ""
@@ -1222,73 +1369,65 @@
           7.75
         ],
         [
-          3.75,
+          3.25,
           8.25
         ],
         [
-          4.25,
-          8.25
-        ],
-        [
-          4.75,
-          8.25
-        ],
-        [
-          5.25,
-          8.25
-        ],
-        [
-          5.75,
-          8.25
-        ],
-        [
-          6.25,
-          8.25
-        ],
-        [
-          6.75,
-          8.25
-        ],
-        [
-          7.25,
+          3.25,
           8.75
         ],
         [
-          7.75,
+          3.25,
           9.25
         ],
         [
-          8.25,
+          3.25,
           9.75
         ],
         [
-          8.75,
+          3.25,
           10.25
         ],
         [
-          9.25,
-          10.25
-        ],
-        [
-          9.75,
-          10.25
-        ],
-        [
-          10.25,
-          10.25
-        ],
-        [
-          10.75,
+          3.25,
           10.75
         ],
         [
-          11.25,
+          3.75,
+          11.25
+        ],
+        [
+          4.25,
+          11.25
+        ],
+        [
+          4.75,
+          11.25
+        ],
+        [
+          5.25,
+          11.25
+        ],
+        [
+          5.75,
+          11.25
+        ],
+        [
+          6.25,
+          11.25
+        ],
+        [
+          6.75,
+          11.25
+        ],
+        [
+          7.25,
           11.25
         ]
       ],
-      "rescue_team": "R1",
-      "reached_t": 139.1,
-      "response_s": 99.1
+      "rescue_team": "R2",
+      "reached_t": 141.3,
+      "response_s": 117.3
     },
     {
       "type": "victim",
@@ -1300,19 +1439,19 @@
       "photo": "results/photos/V9_drone1.png",
       "thermal": "results/photos/V9_drone1_thermal.png",
       "drone": 1,
-      "t": 13.1,
+      "t": 10.6,
       "trapped": false,
       "source": "thermal+camera",
       "is_human": true,
       "kind": "person",
       "label": "person",
-      "confidence": 0.92,
+      "confidence": 0.98,
       "status": "CONFIRMED VICTIM",
       "body_temp_like": true,
-      "measured_temp": 37.5,
-      "t_sent": 13.1,
-      "priority": 37,
-      "t_detected": 13.250000000000103,
+      "measured_temp": 34.4,
+      "t_sent": 10.6,
+      "priority": 39,
+      "t_detected": 10.750000000000032,
       "route": {
         "status": "SAFE ROUTE",
         "direct": {
@@ -1382,8 +1521,115 @@
         ]
       ],
       "rescue_team": "R1",
-      "reached_t": 25.1,
-      "response_s": 11.8
+      "reached_t": 155.1,
+      "response_s": 144.3
+    },
+    {
+      "type": "victim",
+      "id": "V16",
+      "pos": [
+        3.6,
+        11.5
+      ],
+      "photo": "results/photos/V16_drone2.png",
+      "thermal": "results/photos/V16_drone2_thermal.png",
+      "drone": 2,
+      "t": 30.0,
+      "trapped": false,
+      "source": "thermal+camera",
+      "is_human": true,
+      "kind": "person",
+      "label": "person",
+      "confidence": 0.97,
+      "status": "CONFIRMED VICTIM",
+      "body_temp_like": true,
+      "measured_temp": 36.0,
+      "t_sent": 30.0,
+      "priority": 39,
+      "t_detected": 30.24999999999937,
+      "route": {
+        "status": "SAFE ROUTE",
+        "direct": {
+          "length_m": 7.8,
+          "dose": 0.0,
+          "unstable_cells": 0
+        },
+        "safe": {
+          "length_m": 7.8,
+          "dose": 0.0,
+          "unstable_cells": 0
+        },
+        "note": ""
+      },
+      "route_path": [
+        [
+          0.25,
+          6.0
+        ],
+        [
+          0.25,
+          6.25
+        ],
+        [
+          0.75,
+          6.75
+        ],
+        [
+          1.25,
+          7.25
+        ],
+        [
+          1.75,
+          7.75
+        ],
+        [
+          2.25,
+          7.75
+        ],
+        [
+          2.75,
+          7.75
+        ],
+        [
+          3.25,
+          7.75
+        ],
+        [
+          3.25,
+          8.25
+        ],
+        [
+          3.25,
+          8.75
+        ],
+        [
+          3.25,
+          9.25
+        ],
+        [
+          3.25,
+          9.75
+        ],
+        [
+          3.25,
+          10.25
+        ],
+        [
+          3.25,
+          10.75
+        ],
+        [
+          3.75,
+          11.25
+        ],
+        [
+          3.75,
+          11.75
+        ]
+      ],
+      "rescue_team": "R3",
+      "reached_t": 167.5,
+      "response_s": 137.3
     },
     {
       "type": "victim",
@@ -1395,19 +1641,19 @@
       "photo": "results/photos/V20_drone2.png",
       "thermal": "results/photos/V20_drone2_thermal.png",
       "drone": 2,
-      "t": 48.8,
+      "t": 41.9,
       "trapped": false,
       "source": "thermal+camera",
       "is_human": true,
       "kind": "person",
       "label": "person",
-      "confidence": 0.93,
+      "confidence": 0.98,
       "status": "CONFIRMED VICTIM",
       "body_temp_like": true,
-      "measured_temp": 35.3,
-      "t_sent": 48.8,
-      "priority": 37,
-      "t_detected": 49.0000000000012,
+      "measured_temp": 36.4,
+      "t_sent": 41.9,
+      "priority": 39,
+      "t_detected": 42.000000000000405,
       "route": {
         "status": "SAFE ROUTE",
         "direct": {
@@ -1469,8 +1715,8 @@
         ]
       ],
       "rescue_team": "R2",
-      "reached_t": 130.0,
-      "response_s": 81.0
+      "reached_t": 172.1,
+      "response_s": 130.1
     },
     {
       "type": "victim",
@@ -1482,19 +1728,19 @@
       "photo": "results/photos/V11_drone0.png",
       "thermal": "results/photos/V11_drone0_thermal.png",
       "drone": 0,
-      "t": 30.2,
+      "t": 29.6,
       "trapped": false,
       "source": "thermal+camera",
       "is_human": true,
       "kind": "person",
       "label": "person",
-      "confidence": 0.91,
+      "confidence": 0.95,
       "status": "CONFIRMED VICTIM",
       "body_temp_like": true,
-      "measured_temp": 35.5,
-      "t_sent": 30.2,
+      "measured_temp": 36.3,
+      "t_sent": 29.6,
       "relayed_hops": 1,
-      "priority": 36,
+      "priority": 38,
       "t_detected": 36.24999999999975,
       "route": {
         "status": "SAFE ROUTE",
@@ -1596,9 +1842,9 @@
           0.75
         ]
       ],
-      "rescue_team": "R2",
-      "reached_t": 160.6,
-      "response_s": 124.4
+      "rescue_team": "R1",
+      "reached_t": 188.0,
+      "response_s": 151.8
     },
     {
       "type": "victim",
@@ -1610,20 +1856,20 @@
       "photo": "results/photos/V13_drone5.png",
       "thermal": "results/photos/V13_drone5_thermal.png",
       "drone": 5,
-      "t": 51.7,
+      "t": 49.6,
       "trapped": false,
       "source": "thermal+camera",
       "is_human": true,
       "kind": "person",
       "label": "person",
-      "confidence": 0.91,
+      "confidence": 0.96,
       "status": "CONFIRMED VICTIM",
       "body_temp_like": true,
-      "measured_temp": 35.5,
-      "t_sent": 51.7,
+      "measured_temp": 35.1,
+      "t_sent": 49.6,
       "relayed_hops": 2,
-      "priority": 36,
-      "t_detected": 51.75000000000151,
+      "priority": 38,
+      "t_detected": 49.750000000001286,
       "route": {
         "status": "REROUTED (direct route unsafe)",
         "direct": {
@@ -1768,141 +2014,9 @@
           4.25
         ]
       ],
-      "rescue_team": "R3",
-      "reached_t": 191.8,
-      "response_s": 140.1
-    },
-    {
-      "type": "victim",
-      "id": "V7",
-      "pos": [
-        7.4,
-        11.3
-      ],
-      "photo": "results/photos/V7_drone5.png",
-      "thermal": "results/photos/V7_drone5_thermal.png",
-      "drone": 5,
-      "t": 24.4,
-      "trapped": false,
-      "source": "thermal+camera",
-      "is_human": true,
-      "kind": "person",
-      "label": "person",
-      "confidence": 0.87,
-      "status": "CONFIRMED VICTIM",
-      "body_temp_like": true,
-      "measured_temp": 36.8,
-      "t_sent": 24.4,
-      "relayed_hops": 1,
-      "priority": 35,
-      "t_detected": 24.499999999999698,
-      "route": {
-        "status": "SAFE ROUTE",
-        "direct": {
-          "length_m": 10.5,
-          "dose": 0.04,
-          "unstable_cells": 0
-        },
-        "safe": {
-          "length_m": 10.8,
-          "dose": 0.0,
-          "unstable_cells": 0
-        },
-        "note": ""
-      },
-      "route_path": [
-        [
-          0.25,
-          6.0
-        ],
-        [
-          0.25,
-          6.25
-        ],
-        [
-          0.75,
-          6.75
-        ],
-        [
-          1.25,
-          7.25
-        ],
-        [
-          1.75,
-          7.75
-        ],
-        [
-          2.25,
-          7.75
-        ],
-        [
-          2.75,
-          7.75
-        ],
-        [
-          3.25,
-          7.75
-        ],
-        [
-          3.25,
-          8.25
-        ],
-        [
-          3.25,
-          8.75
-        ],
-        [
-          3.25,
-          9.25
-        ],
-        [
-          3.25,
-          9.75
-        ],
-        [
-          3.25,
-          10.25
-        ],
-        [
-          3.25,
-          10.75
-        ],
-        [
-          3.75,
-          11.25
-        ],
-        [
-          4.25,
-          11.25
-        ],
-        [
-          4.75,
-          11.25
-        ],
-        [
-          5.25,
-          11.25
-        ],
-        [
-          5.75,
-          11.25
-        ],
-        [
-          6.25,
-          11.25
-        ],
-        [
-          6.75,
-          11.25
-        ],
-        [
-          7.25,
-          11.25
-        ]
-      ],
-      "rescue_team": "R1",
-      "reached_t": 184.5,
-      "response_s": 160.0
+      "rescue_team": "R2",
+      "reached_t": 213.3,
+      "response_s": 163.5
     },
     {
       "type": "victim",
@@ -1914,19 +2028,19 @@
       "photo": "results/photos/V1_drone0.png",
       "thermal": "results/photos/V1_drone0_thermal.png",
       "drone": 0,
-      "t": 7.2,
+      "t": 6.6,
       "trapped": false,
       "source": "thermal+camera",
       "is_human": true,
       "kind": "person",
       "label": "person",
-      "confidence": 0.86,
+      "confidence": 0.92,
       "status": "CONFIRMED VICTIM",
       "body_temp_like": true,
-      "measured_temp": 35.6,
-      "t_sent": 7.2,
-      "priority": 34,
-      "t_detected": 7.2499999999999645,
+      "measured_temp": 36.1,
+      "t_sent": 6.6,
+      "priority": 37,
+      "t_detected": 6.749999999999972,
       "route": {
         "status": "SAFE ROUTE",
         "direct": {
@@ -1992,115 +2106,8 @@
         ]
       ],
       "rescue_team": "R2",
-      "reached_t": 17.0,
+      "reached_t": 16.5,
       "response_s": 9.8
-    },
-    {
-      "type": "victim",
-      "id": "V16",
-      "pos": [
-        3.6,
-        11.5
-      ],
-      "photo": "results/photos/V16_drone2.png",
-      "thermal": "results/photos/V16_drone2_thermal.png",
-      "drone": 2,
-      "t": 32.0,
-      "trapped": false,
-      "source": "thermal+camera",
-      "is_human": true,
-      "kind": "person",
-      "label": "person",
-      "confidence": 0.85,
-      "status": "LIKELY VICTIM - please verify",
-      "body_temp_like": true,
-      "measured_temp": 36.2,
-      "t_sent": 32.0,
-      "priority": 34,
-      "t_detected": 32.2499999999993,
-      "route": {
-        "status": "SAFE ROUTE",
-        "direct": {
-          "length_m": 7.8,
-          "dose": 0.0,
-          "unstable_cells": 0
-        },
-        "safe": {
-          "length_m": 7.8,
-          "dose": 0.0,
-          "unstable_cells": 0
-        },
-        "note": ""
-      },
-      "route_path": [
-        [
-          0.25,
-          6.0
-        ],
-        [
-          0.25,
-          6.25
-        ],
-        [
-          0.75,
-          6.75
-        ],
-        [
-          1.25,
-          7.25
-        ],
-        [
-          1.75,
-          7.75
-        ],
-        [
-          2.25,
-          7.75
-        ],
-        [
-          2.75,
-          7.75
-        ],
-        [
-          3.25,
-          7.75
-        ],
-        [
-          3.25,
-          8.25
-        ],
-        [
-          3.25,
-          8.75
-        ],
-        [
-          3.25,
-          9.25
-        ],
-        [
-          3.25,
-          9.75
-        ],
-        [
-          3.25,
-          10.25
-        ],
-        [
-          3.25,
-          10.75
-        ],
-        [
-          3.75,
-          11.25
-        ],
-        [
-          3.75,
-          11.75
-        ]
-      ],
-      "rescue_team": "R2",
-      "reached_t": 195.4,
-      "response_s": 163.2
     },
     {
       "type": "victim",
@@ -2112,20 +2119,20 @@
       "photo": "results/photos/V18_drone4.png",
       "thermal": "results/photos/V18_drone4_thermal.png",
       "drone": 4,
-      "t": 29.1,
+      "t": 23.1,
       "trapped": false,
       "source": "thermal+camera",
       "is_human": true,
       "kind": "person",
       "label": "person",
-      "confidence": 0.83,
-      "status": "LIKELY VICTIM - please verify",
+      "confidence": 0.89,
+      "status": "CONFIRMED VICTIM",
       "body_temp_like": true,
-      "measured_temp": 35.5,
-      "t_sent": 29.1,
+      "measured_temp": 35.1,
+      "t_sent": 23.1,
       "relayed_hops": 1,
-      "priority": 33,
-      "t_detected": 29.249999999999428,
+      "priority": 36,
+      "t_detected": 23.24999999999977,
       "route": {
         "status": "REROUTED (direct route unsafe)",
         "direct": {
@@ -2246,9 +2253,9 @@
           7.25
         ]
       ],
-      "rescue_team": "R1",
-      "reached_t": 230.8,
-      "response_s": 201.6
+      "rescue_team": "R3",
+      "reached_t": 208.9,
+      "response_s": 185.6
     },
     {
       "type": "victim",
@@ -2260,19 +2267,19 @@
       "photo": "results/photos/H2_drone1.png",
       "thermal": "results/photos/H2_drone1_thermal.png",
       "drone": 1,
-      "t": 20.2,
+      "t": 19.6,
       "trapped": false,
       "source": "thermal+camera",
       "is_human": false,
       "kind": "animal",
-      "label": "unclear (animal?)",
-      "confidence": 0.26,
+      "label": "unclear (body part: partial?)",
+      "confidence": 0.44,
       "status": "DISMISSED - not a person",
       "body_temp_like": true,
       "measured_temp": 39.0,
-      "t_sent": 20.2,
-      "priority": 10,
-      "t_detected": 20.24999999999994,
+      "t_sent": 19.6,
+      "priority": 18,
+      "t_detected": 19.749999999999968,
       "route": {
         "status": "SAFE ROUTE",
         "direct": {
@@ -2290,45 +2297,6 @@
     },
     {
       "type": "victim",
-      "id": "H3",
-      "pos": [
-        9.8,
-        11.6
-      ],
-      "photo": "results/photos/H3_drone5.png",
-      "thermal": "results/photos/H3_drone5_thermal.png",
-      "drone": 5,
-      "t": 32.4,
-      "trapped": false,
-      "source": "thermal+camera",
-      "is_human": false,
-      "kind": "fire",
-      "label": "unclear (hot debris / fire?)",
-      "confidence": 0.07,
-      "status": "DISMISSED - not a person",
-      "body_temp_like": false,
-      "measured_temp": 94.9,
-      "t_sent": 32.4,
-      "relayed_hops": 2,
-      "priority": 3,
-      "t_detected": 40.00000000000018,
-      "route": {
-        "status": "SAFE ROUTE",
-        "direct": {
-          "length_m": 12.1,
-          "dose": 0.05,
-          "unstable_cells": 0
-        },
-        "safe": {
-          "length_m": 12.1,
-          "dose": 0.04,
-          "unstable_cells": 0
-        },
-        "note": ""
-      }
-    },
-    {
-      "type": "victim",
       "id": "H1",
       "pos": [
         7.0,
@@ -2337,19 +2305,19 @@
       "photo": "results/photos/H1_drone4.png",
       "thermal": "results/photos/H1_drone4_thermal.png",
       "drone": 4,
-      "t": 18.8,
+      "t": 11.5,
       "trapped": false,
       "source": "thermal+camera",
       "is_human": false,
       "kind": "fire",
-      "label": "unclear (hot debris / fire?)",
-      "confidence": 0.06,
+      "label": "unclear - no person seen",
+      "confidence": 0.05,
       "status": "DISMISSED - not a person",
       "body_temp_like": false,
-      "measured_temp": 178.9,
-      "t_sent": 18.8,
+      "measured_temp": 180.6,
+      "t_sent": 11.5,
       "priority": 2,
-      "t_detected": 19.00000000000001,
+      "t_detected": 11.500000000000053,
       "route": {
         "status": "SAFE ROUTE",
         "direct": {
@@ -2360,6 +2328,44 @@
         "safe": {
           "length_m": 7.6,
           "dose": 0.19,
+          "unstable_cells": 0
+        },
+        "note": ""
+      }
+    },
+    {
+      "type": "victim",
+      "id": "H3",
+      "pos": [
+        9.8,
+        11.6
+      ],
+      "photo": "results/photos/H3_drone5.png",
+      "thermal": "results/photos/H3_drone5_thermal.png",
+      "drone": 5,
+      "t": 28.9,
+      "trapped": false,
+      "source": "thermal+camera",
+      "is_human": false,
+      "kind": "fire",
+      "label": "unclear - no person seen",
+      "confidence": 0.05,
+      "status": "DISMISSED - not a person",
+      "body_temp_like": false,
+      "measured_temp": 94.9,
+      "t_sent": 28.9,
+      "priority": 2,
+      "t_detected": 28.999999999999442,
+      "route": {
+        "status": "SAFE ROUTE",
+        "direct": {
+          "length_m": 12.1,
+          "dose": 0.05,
+          "unstable_cells": 0
+        },
+        "safe": {
+          "length_m": 12.1,
+          "dose": 0.04,
           "unstable_cells": 0
         },
         "note": ""
@@ -2378,94 +2384,124 @@
       "event": "Drone 4: unusual heat signal 30.1 C at (0.6, 7.2) - taking photo"
     },
     {
-      "t": 4.8,
+      "t": 4.0,
       "level": "verify",
-      "event": "LIKELY VICTIM - please verify: body part: foot/leg (55% AI conf.) at (0.6, 7.2) - photo sent, priority 57"
+      "event": "LIKELY VICTIM - please verify: person (64% AI conf.) at (0.6, 7.2) - photo sent, priority 61"
     },
     {
-      "t": 4.8,
+      "t": 4.0,
       "level": "info",
-      "event": "Team R1 dispatched to V15 (priority 57)"
+      "event": "Team R1 dispatched to V15 (priority 61)"
     },
     {
       "t": 6.0,
       "level": "heat",
-      "event": "Drone 0: unusual heat signal 35.6 C at (2.5, 2.2) - taking photo"
+      "event": "Drone 0: unusual heat signal 36.1 C at (2.5, 2.2) - taking photo"
     },
     {
       "t": 6.2,
       "level": "heat",
-      "event": "Drone 3: unusual heat signal 31.9 C at (3.4, 6.6) - taking photo"
+      "event": "Drone 3: unusual heat signal 31.3 C at (3.4, 6.6) - taking photo"
     },
     {
       "t": 6.5,
       "level": "heat",
-      "event": "Drone 1: unusual heat signal 37.5 C at (0.8, 0.8) - taking photo"
+      "event": "Drone 1: unusual heat signal 34.4 C at (0.8, 0.8) - taking photo"
     },
     {
-      "t": 7.2,
+      "t": 6.7,
       "level": "victim",
-      "event": "CONFIRMED VICTIM: person (86% AI conf.) at (2.5, 2.2) - photo sent, priority 34"
+      "event": "CONFIRMED VICTIM: person (92% AI conf.) at (2.5, 2.2) - photo sent, priority 37"
+    },
+    {
+      "t": 6.8,
+      "level": "info",
+      "event": "Team R2 dispatched to V1 (priority 37)"
     },
     {
       "t": 7.3,
-      "level": "info",
-      "event": "Team R2 dispatched to V1 (priority 34)"
-    },
-    {
-      "t": 8.0,
       "level": "ok",
       "event": "Rescue team R1 reached V15 (victim) - 3s after detection"
     },
     {
+      "t": 7.5,
+      "level": "verify",
+      "event": "POSSIBLE VICTIM - please verify: unclear (person?) (14% AI conf.) at (3.4, 6.6) - photo sent, priority 41"
+    },
+    {
       "t": 9.0,
       "level": "heat",
-      "event": "Drone 0: unusual heat signal 33.1 C at (4.2, 0.9) - taking photo"
+      "event": "Drone 0: unusual heat signal 33.7 C at (4.2, 0.9) - taking photo"
+    },
+    {
+      "t": 10.5,
+      "level": "victim",
+      "event": "Rescuer confirmed V4 is a person (unclear (person?)) - dispatching"
+    },
+    {
+      "t": 10.5,
+      "level": "info",
+      "event": "Team R3 dispatched to V4 (priority 41)"
     },
     {
       "t": 10.5,
       "level": "heat",
-      "event": "Drone 4: unusual heat signal 178.9 C at (7.0, 7.6) - taking photo"
+      "event": "Drone 4: unusual heat signal 180.6 C at (7.0, 7.6) - taking photo"
+    },
+    {
+      "t": 10.8,
+      "level": "victim",
+      "event": "CONFIRMED VICTIM: person (98% AI conf.) at (0.8, 0.8) - photo sent, priority 39"
     },
     {
       "t": 10.8,
       "level": "heat",
-      "event": "Drone 5: unusual heat signal 33.8 C at (7.6, 9.2) - taking photo"
+      "event": "Drone 5: unusual heat signal 33.9 C at (7.6, 9.2) - taking photo"
     },
     {
-      "t": 13.3,
+      "t": 11.5,
+      "level": "verify",
+      "event": "POSSIBLE VICTIM - please verify: unclear - no person seen (5% AI conf.) at (7.0, 7.6) - photo sent, priority 2"
+    },
+    {
+      "t": 11.8,
       "level": "victim",
-      "event": "CONFIRMED VICTIM: person (92% AI conf.) at (0.8, 0.8) - photo sent, priority 37"
+      "event": "CONFIRMED VICTIM: body part: hand/arm (96% AI conf.) at (7.6, 9.2) - photo sent, priority 73"
     },
     {
-      "t": 13.3,
-      "level": "verify",
-      "event": "LIKELY VICTIM - please verify: body part: foot/leg (65% AI conf.) at (3.4, 6.6) - photo sent, priority 61"
-    },
-    {
-      "t": 13.3,
+      "t": 13.6,
       "level": "info",
-      "event": "Team R3 dispatched to V4 (priority 61)"
+      "event": "Team R1 dispatched to V17 (priority 73) - direct route unsafe, rerouted (8.7m -> 8.7m)"
     },
     {
-      "t": 14.3,
+      "t": 14.5,
       "level": "info",
-      "event": "Team R1 dispatched to V9 (priority 37)"
+      "event": "Rescuer marked H1 as not a person - dismissed"
     },
     {
-      "t": 17.0,
-      "level": "verify",
-      "event": "LIKELY VICTIM - please verify: body part: hand/arm (66% AI conf.) at (4.2, 0.9) - photo sent, priority 61"
+      "t": 14.8,
+      "level": "victim",
+      "event": "CONFIRMED VICTIM: body part: hand/arm (87% AI conf.) at (4.2, 0.9) - photo sent, priority 70"
+    },
+    {
+      "t": 16.5,
+      "level": "ok",
+      "event": "Rescue team R2 reached V1 (victim) - 10s after detection"
     },
     {
       "t": 17.0,
       "level": "heat",
-      "event": "Drone 3: unusual heat signal 35.4 C at (5.3, 9.8) - taking photo"
+      "event": "Drone 3: unusual heat signal 35.0 C at (5.3, 9.8) - taking photo"
     },
     {
-      "t": 17.0,
+      "t": 17.1,
       "level": "ok",
-      "event": "Rescue team R2 reached V1 (victim) - 10s after detection"
+      "event": "Rescue team R3 reached V4 (victim) - 10s after detection"
+    },
+    {
+      "t": 18.3,
+      "level": "victim",
+      "event": "CONFIRMED VICTIM: person (97% AI conf.) at (5.3, 9.8) - photo sent, priority 79"
     },
     {
       "t": 18.5,
@@ -2473,79 +2509,54 @@
       "event": "Drone 1: unusual heat signal 39.0 C at (3.2, 3.6) - taking photo"
     },
     {
-      "t": 19.0,
+      "t": 19.7,
       "level": "verify",
-      "event": "POSSIBLE VICTIM - please verify: unclear (hot debris / fire?) (6% AI conf.) at (7.0, 7.6) - photo sent, priority 2"
-    },
-    {
-      "t": 19.2,
-      "level": "verify",
-      "event": "LIKELY VICTIM - please verify: body part: hand/arm (72% AI conf.) at (7.6, 9.2) - photo sent, priority 64"
-    },
-    {
-      "t": 19.9,
-      "level": "ok",
-      "event": "Rescue team R3 reached V4 (victim) - 7s after detection"
+      "event": "POSSIBLE VICTIM - please verify: unclear (body part: partial?) (44% AI conf.) at (3.2, 3.6) - photo sent, priority 18"
     },
     {
       "t": 20.0,
       "level": "heat",
-      "event": "Drone 0: unusual heat signal 33.0 C at (5.9, 2.6) - taking photo"
+      "event": "Drone 0: unusual heat signal 33.4 C at (5.9, 2.6) - taking photo"
     },
     {
-      "t": 20.2,
-      "level": "verify",
-      "event": "POSSIBLE VICTIM - please verify: unclear (animal?) (26% AI conf.) at (3.2, 3.6) - photo sent, priority 10"
+      "t": 22.0,
+      "level": "victim",
+      "event": "CONFIRMED VICTIM: body part: hand/arm (87% AI conf.) at (5.9, 2.6) - photo sent, priority 70"
     },
     {
       "t": 22.0,
       "level": "heat",
-      "event": "Drone 5: unusual heat signal 36.8 C at (7.4, 11.3) - taking photo"
-    },
-    {
-      "t": 22.0,
-      "level": "info",
-      "event": "Rescuer marked H1 as not a person - dismissed"
+      "event": "Drone 5: unusual heat signal 36.6 C at (7.4, 11.3) - taking photo"
     },
     {
       "t": 22.2,
       "level": "heat",
-      "event": "Drone 4: unusual heat signal 35.5 C at (10.4, 7.2) - taking photo"
+      "event": "Drone 4: unusual heat signal 35.1 C at (10.4, 7.2) - taking photo"
     },
     {
-      "t": 23.2,
-      "level": "verify",
-      "event": "LIKELY VICTIM - please verify: body part: hand/arm (77% AI conf.) at (5.9, 2.6) - photo sent, priority 66"
-    },
-    {
-      "t": 23.3,
+      "t": 22.8,
       "level": "info",
       "event": "Rescuer marked H2 as not a person - dismissed"
     },
     {
-      "t": 24.0,
+      "t": 23.2,
       "level": "victim",
-      "event": "CONFIRMED VICTIM: person (99% AI conf.) at (5.3, 9.8) - photo sent, priority 80"
+      "event": "CONFIRMED VICTIM: person (89% AI conf.) at (10.4, 7.2) - photo sent, priority 36"
     },
     {
-      "t": 24.5,
+      "t": 24.0,
       "level": "victim",
-      "event": "CONFIRMED VICTIM: person (87% AI conf.) at (7.4, 11.3) - photo sent, priority 35"
+      "event": "CONFIRMED VICTIM: person (99% AI conf.) at (7.4, 11.3) - photo sent, priority 40"
     },
     {
       "t": 25.0,
       "level": "verify",
-      "event": "PHONE SIGNAL with no heat/visual at (1.6, 4.9): likely BURIED victim, priority 54"
+      "event": "PHONE SIGNAL with no heat/visual at (1.5, 4.9): likely BURIED victim, priority 54"
     },
     {
       "t": 25.0,
       "level": "verify",
       "event": "PHONE SIGNAL with no heat/visual at (0.0, 11.9): likely BURIED victim, priority 54"
-    },
-    {
-      "t": 25.1,
-      "level": "ok",
-      "event": "Rescue team R1 reached V9 (victim) - 12s after detection"
     },
     {
       "t": 25.2,
@@ -2565,7 +2576,12 @@
     {
       "t": 25.7,
       "level": "heat",
-      "event": "Drone 2: unusual heat signal 36.2 C at (3.6, 11.5) - taking photo"
+      "event": "Drone 2: unusual heat signal 36.0 C at (3.6, 11.5) - taking photo"
+    },
+    {
+      "t": 26.7,
+      "level": "info",
+      "event": "Team R3 dispatched to V5 (priority 79)"
     },
     {
       "t": 27.5,
@@ -2585,7 +2601,12 @@
     {
       "t": 28.7,
       "level": "heat",
-      "event": "Drone 0: unusual heat signal 35.5 C at (7.0, 0.6) - taking photo"
+      "event": "Drone 0: unusual heat signal 36.3 C at (7.0, 0.6) - taking photo"
+    },
+    {
+      "t": 29.0,
+      "level": "verify",
+      "event": "POSSIBLE VICTIM - please verify: unclear - no person seen (5% AI conf.) at (9.8, 11.6) - photo sent, priority 2"
     },
     {
       "t": 29.2,
@@ -2593,14 +2614,14 @@
       "event": "Drone 0 lost signal - continuing autonomously (edge AI)"
     },
     {
-      "t": 29.2,
-      "level": "verify",
-      "event": "LIKELY VICTIM - please verify: person (83% AI conf.) at (10.4, 7.2) - photo sent, priority 33"
+      "t": 29.4,
+      "level": "info",
+      "event": "Team R2 dispatched to V10 (priority 70)"
     },
     {
-      "t": 29.5,
-      "level": "info",
-      "event": "Team R3 dispatched to V5 (priority 80)"
+      "t": 29.4,
+      "level": "ok",
+      "event": "Rescue team R1 reached V17 (victim) - 18s after detection"
     },
     {
       "t": 29.5,
@@ -2608,14 +2629,14 @@
       "event": "Drone 5 lost signal - continuing autonomously (edge AI)"
     },
     {
-      "t": 29.9,
-      "level": "info",
-      "event": "Team R2 dispatched to V2 (priority 66)"
+      "t": 30.2,
+      "level": "victim",
+      "event": "CONFIRMED VICTIM: person (97% AI conf.) at (3.6, 11.5) - photo sent, priority 39"
     },
     {
-      "t": 32.2,
-      "level": "verify",
-      "event": "LIKELY VICTIM - please verify: person (85% AI conf.) at (3.6, 11.5) - photo sent, priority 34"
+      "t": 32.0,
+      "level": "info",
+      "event": "Rescuer marked H3 as not a person - dismissed"
     },
     {
       "t": 34.2,
@@ -2630,12 +2651,12 @@
     {
       "t": 36.2,
       "level": "victim",
-      "event": "CONFIRMED VICTIM: person (91% AI conf.) at (7.0, 0.6) - photo sent, priority 36"
+      "event": "CONFIRMED VICTIM: person (95% AI conf.) at (7.0, 0.6) - photo sent, priority 38"
     },
     {
-      "t": 38.9,
-      "level": "info",
-      "event": "Team R1 dispatched to V17 (priority 64)"
+      "t": 37.7,
+      "level": "ok",
+      "event": "Rescue team R3 reached V5 (perimeter (heavy-rescue requested)) - 19s after detection"
     },
     {
       "t": 39.0,
@@ -2645,52 +2666,47 @@
     {
       "t": 40.0,
       "level": "net",
-      "event": "Drone 5 back online after 12.3s - synced 3 buffered report(s)"
-    },
-    {
-      "t": 40.0,
-      "level": "verify",
-      "event": "POSSIBLE VICTIM - please verify: unclear (hot debris / fire?) (7% AI conf.) at (9.8, 11.6) - photo sent, priority 3"
+      "event": "Drone 5 back online after 12.3s - synced 2 buffered report(s)"
     },
     {
       "t": 40.0,
       "level": "heat",
-      "event": "Drone 5: unusual heat signal 34.4 C at (11.0, 11.1) - taking photo"
+      "event": "Drone 5: unusual heat signal 34.2 C at (11.0, 11.1) - taking photo"
     },
     {
       "t": 40.0,
-      "level": "verify",
-      "event": "LIKELY VICTIM - please verify: body part: head (71% AI conf.) at (11.0, 11.1) - photo sent, priority 48"
-    },
-    {
-      "t": 40.5,
-      "level": "ok",
-      "event": "Rescue team R3 reached V5 (perimeter (heavy-rescue requested)) - 16s after detection"
+      "level": "victim",
+      "event": "CONFIRMED VICTIM: body part: head (98% AI conf.) at (11.0, 11.1) - photo sent, priority 59"
     },
     {
       "t": 41.0,
       "level": "heat",
-      "event": "Drone 2: unusual heat signal 35.3 C at (4.6, 4.2) - taking photo"
+      "event": "Drone 2: unusual heat signal 36.4 C at (4.6, 4.2) - taking photo"
     },
     {
-      "t": 41.9,
-      "level": "ok",
-      "event": "Rescue team R2 reached V2 (victim) - 19s after detection"
+      "t": 42.0,
+      "level": "victim",
+      "event": "CONFIRMED VICTIM: person (98% AI conf.) at (4.6, 4.2) - photo sent, priority 39"
     },
     {
       "t": 42.3,
       "level": "heat",
-      "event": "Drone 4: unusual heat signal 35.2 C at (9.6, 5.0) - taking photo"
+      "event": "Drone 4: unusual heat signal 35.1 C at (9.6, 5.0) - taking photo"
     },
     {
-      "t": 43.0,
-      "level": "info",
-      "event": "Rescuer marked H3 as not a person - dismissed"
+      "t": 42.7,
+      "level": "ok",
+      "event": "Rescue team R2 reached V10 (victim) - 28s after detection"
+    },
+    {
+      "t": 43.5,
+      "level": "victim",
+      "event": "CONFIRMED VICTIM: person (95% AI conf.) at (9.6, 5.0) - photo sent, priority 58"
     },
     {
       "t": 44.0,
       "level": "heat",
-      "event": "Drone 5: unusual heat signal 35.5 C at (11.4, 4.2) - taking photo"
+      "event": "Drone 5: unusual heat signal 35.1 C at (11.4, 4.2) - taking photo"
     },
     {
       "t": 45.8,
@@ -2698,14 +2714,14 @@
       "event": "Drone 0 lost signal - continuing autonomously (edge AI)"
     },
     {
-      "t": 48.0,
-      "level": "victim",
-      "event": "CONFIRMED VICTIM: person (99% AI conf.) at (9.6, 5.0) - photo sent, priority 60"
+      "t": 48.3,
+      "level": "info",
+      "event": "Team R1 dispatched to V2 (priority 70)"
     },
     {
-      "t": 49.0,
+      "t": 49.8,
       "level": "victim",
-      "event": "CONFIRMED VICTIM: person (93% AI conf.) at (4.6, 4.2) - photo sent, priority 37"
+      "event": "CONFIRMED VICTIM: person (96% AI conf.) at (11.4, 4.2) - photo sent, priority 38"
     },
     {
       "t": 51.3,
@@ -2713,24 +2729,14 @@
       "event": "Drone 0 back online after 7.0s"
     },
     {
-      "t": 51.8,
-      "level": "victim",
-      "event": "CONFIRMED VICTIM: person (91% AI conf.) at (11.4, 4.2) - photo sent, priority 36"
-    },
-    {
-      "t": 54.5,
+      "t": 51.7,
       "level": "info",
-      "event": "Team R3 dispatched to V10 (priority 61)"
+      "event": "Team R3 dispatched to V6 (priority 59)"
     },
     {
       "t": 54.5,
       "level": "heat",
-      "event": "Drone 4: unusual heat signal 34.3 C at (11.6, 0.5) - taking photo"
-    },
-    {
-      "t": 54.7,
-      "level": "ok",
-      "event": "Rescue team R1 reached V17 (victim) - 35s after detection"
+      "event": "Drone 4: unusual heat signal 34.0 C at (11.6, 0.5) - taking photo"
     },
     {
       "t": 55.6,
@@ -2738,24 +2744,24 @@
       "event": "Drone 1 docked on charging pad"
     },
     {
-      "t": 56.9,
+      "t": 59.0,
       "level": "info",
-      "event": "Team R2 dispatched to V3 (priority 60) - direct route unsafe, rerouted (10.3m -> 18.0m)"
+      "event": "Team R2 dispatched to V3 (priority 58) - direct route unsafe, rerouted (10.3m -> 18.0m)"
     },
     {
-      "t": 63.0,
-      "level": "verify",
-      "event": "LIKELY VICTIM - please verify: body part: head (73% AI conf.) at (11.6, 0.5) - photo sent, priority 49"
+      "t": 61.0,
+      "level": "victim",
+      "event": "CONFIRMED VICTIM: body part: head (98% AI conf.) at (11.6, 0.5) - photo sent, priority 59"
+    },
+    {
+      "t": 61.1,
+      "level": "ok",
+      "event": "Rescue team R1 reached V2 (victim) - 39s after detection"
     },
     {
       "t": 65.0,
       "level": "verify",
-      "event": "PHONE SIGNAL with no heat/visual at (6.9, 4.4): likely BURIED victim, priority 54"
-    },
-    {
-      "t": 68.6,
-      "level": "ok",
-      "event": "Rescue team R3 reached V10 (victim) - 52s after detection"
+      "event": "PHONE SIGNAL with no heat/visual at (7.0, 4.5): likely BURIED victim, priority 74"
     },
     {
       "t": 71.1,
@@ -2768,9 +2774,9 @@
       "event": "Command AI re-split 4 unsearched cells across 5 drones (drone 1 rejoined)"
     },
     {
-      "t": 73.5,
-      "level": "info",
-      "event": "Team R1 dispatched to V8 (priority 54)"
+      "t": 74.7,
+      "level": "ok",
+      "event": "Rescue team R3 reached V6 (victim) - 35s after detection"
     },
     {
       "t": 76.5,
@@ -2783,6 +2789,11 @@
       "event": "Drone 5 lost signal - continuing autonomously (edge AI)"
     },
     {
+      "t": 76.9,
+      "level": "info",
+      "event": "Team R1 dispatched to V14 (priority 74)"
+    },
+    {
       "t": 77.0,
       "level": "net",
       "event": "Drone 4 back online after 2.2s"
@@ -2791,26 +2802,6 @@
       "t": 77.0,
       "level": "net",
       "event": "Drone 5 back online after 2.2s"
-    },
-    {
-      "t": 78.3,
-      "level": "ok",
-      "event": "Rescue team R1 reached V8 (victim) - 53s after detection"
-    },
-    {
-      "t": 85.8,
-      "level": "info",
-      "event": "Team R3 dispatched to V19 (priority 54)"
-    },
-    {
-      "t": 86.1,
-      "level": "info",
-      "event": "Team R1 dispatched to V14 (priority 54)"
-    },
-    {
-      "t": 87.2,
-      "level": "ok",
-      "event": "Rescue team R2 reached V3 (victim) - 39s after detection"
     },
     {
       "t": 88.3,
@@ -2823,19 +2814,24 @@
       "event": "Drone 0 docked on charging pad"
     },
     {
+      "t": 89.4,
+      "level": "ok",
+      "event": "Rescue team R2 reached V3 (victim) - 46s after detection"
+    },
+    {
       "t": 90.7,
       "level": "info",
       "event": "Drone 4 docked on charging pad"
     },
     {
-      "t": 96.2,
+      "t": 90.9,
       "level": "ok",
-      "event": "Rescue team R3 reached V19 (victim) - 71s after detection"
+      "event": "Rescue team R1 reached V14 (victim) - 26s after detection"
     },
     {
-      "t": 99.6,
-      "level": "ok",
-      "event": "Rescue team R1 reached V14 (victim) - 35s after detection"
+      "t": 100.8,
+      "level": "info",
+      "event": "Team R3 dispatched to V12 (priority 59)"
     },
     {
       "t": 104.3,
@@ -2848,87 +2844,102 @@
       "event": "All drones home. Search complete - rescue teams finishing"
     },
     {
-      "t": 109.7,
+      "t": 107.9,
       "level": "info",
-      "event": "Team R3 dispatched to V12 (priority 49)"
+      "event": "Team R1 dispatched to V8 (priority 54)"
     },
     {
-      "t": 116.1,
+      "t": 112.6,
+      "level": "ok",
+      "event": "Rescue team R1 reached V8 (victim) - 88s after detection"
+    },
+    {
+      "t": 120.5,
       "level": "info",
-      "event": "Team R1 dispatched to V6 (priority 48)"
+      "event": "Team R1 dispatched to V19 (priority 54)"
     },
     {
-      "t": 120.7,
+      "t": 122.9,
       "level": "info",
-      "event": "Team R2 dispatched to V20 (priority 37)"
+      "event": "Team R2 dispatched to V7 (priority 40)"
     },
     {
-      "t": 130.0,
+      "t": 125.5,
       "level": "ok",
-      "event": "Rescue team R2 reached V20 (victim) - 81s after detection"
+      "event": "Rescue team R3 reached V12 (victim) - 64s after detection"
     },
     {
-      "t": 134.4,
+      "t": 130.9,
       "level": "ok",
-      "event": "Rescue team R3 reached V12 (victim) - 71s after detection"
+      "event": "Rescue team R1 reached V19 (victim) - 106s after detection"
     },
     {
-      "t": 139.1,
+      "t": 141.3,
       "level": "ok",
-      "event": "Rescue team R1 reached V6 (victim) - 99s after detection"
+      "event": "Rescue team R2 reached V7 (victim) - 117s after detection"
     },
     {
-      "t": 142.3,
+      "t": 144.3,
       "level": "info",
-      "event": "Team R2 dispatched to V11 (priority 36)"
+      "event": "Team R1 dispatched to V9 (priority 39)"
     },
     {
-      "t": 160.6,
-      "level": "ok",
-      "event": "Rescue team R2 reached V11 (victim) - 124s after detection"
-    },
-    {
-      "t": 162.1,
+      "t": 153.2,
       "level": "info",
-      "event": "Team R3 dispatched to V13 (priority 36) - direct route unsafe, rerouted (11.8m -> 17.1m)"
+      "event": "Team R3 dispatched to V16 (priority 39)"
     },
     {
-      "t": 165.2,
+      "t": 155.1,
+      "level": "ok",
+      "event": "Rescue team R1 reached V9 (victim) - 144s after detection"
+    },
+    {
+      "t": 162.8,
       "level": "info",
-      "event": "Team R1 dispatched to V7 (priority 35)"
+      "event": "Team R2 dispatched to V20 (priority 39)"
     },
     {
-      "t": 182.0,
+      "t": 167.5,
+      "level": "ok",
+      "event": "Rescue team R3 reached V16 (victim) - 137s after detection"
+    },
+    {
+      "t": 168.9,
       "level": "info",
-      "event": "Team R2 dispatched to V16 (priority 34)"
+      "event": "Team R1 dispatched to V11 (priority 38)"
     },
     {
-      "t": 184.5,
+      "t": 172.1,
       "level": "ok",
-      "event": "Rescue team R1 reached V7 (victim) - 160s after detection"
+      "event": "Rescue team R2 reached V20 (victim) - 130s after detection"
     },
     {
-      "t": 191.8,
-      "level": "ok",
-      "event": "Rescue team R3 reached V13 (victim) - 140s after detection"
-    },
-    {
-      "t": 195.4,
-      "level": "ok",
-      "event": "Rescue team R2 reached V16 (victim) - 163s after detection"
-    },
-    {
-      "t": 206.8,
+      "t": 184.4,
       "level": "info",
-      "event": "Team R1 dispatched to V18 (priority 33) - direct route unsafe, rerouted (10.4m -> 13.7m)"
+      "event": "Team R2 dispatched to V13 (priority 38) - direct route unsafe, rerouted (11.8m -> 17.1m)"
     },
     {
-      "t": 230.8,
+      "t": 184.9,
+      "level": "info",
+      "event": "Team R3 dispatched to V18 (priority 36) - direct route unsafe, rerouted (10.4m -> 13.7m)"
+    },
+    {
+      "t": 188.0,
       "level": "ok",
-      "event": "Rescue team R1 reached V18 (victim) - 202s after detection"
+      "event": "Rescue team R1 reached V11 (victim) - 152s after detection"
     },
     {
-      "t": 257.9,
+      "t": 208.9,
+      "level": "ok",
+      "event": "Rescue team R3 reached V18 (victim) - 186s after detection"
+    },
+    {
+      "t": 213.3,
+      "level": "ok",
+      "event": "Rescue team R2 reached V13 (victim) - 164s after detection"
+    },
+    {
+      "t": 245.2,
       "level": "ok",
       "event": "Mission complete: every victim reached by a rescue team"
     }

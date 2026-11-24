@@ -354,7 +354,7 @@ class Mission:
         """Rescuer pressed 'Snapshot + AI check': high-res photo from the drone camera, AI check of what's in view."""
         eye, target = P.drone_view(d.pos, d.heading)
         rgb, seg = P.camera(self.client, eye, target, 640, 480)
-        dets = P.detect(seg, self.world.sources)
+        dets = P.detect(rgb, seg, self.world.sources)
         seen = [s for s in self.world.sources if s.bodies and np.isin(seg, s.bodies).any()]
         path = os.path.join(self.out, "snapshots", f"drone{d.id}_{self.t:.0f}s.jpg")
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -473,6 +473,9 @@ class Mission:
             mean_detection_to_rescuer_s=round(float(np.mean([v["response_s"] for v in humans if v.get("response_s")])), 1)
                 if any(v.get("response_s") for v in humans) else None,
             false_alarms_dismissed_by_rescuer=sum(1 for v in decoys if v["status"].startswith("DISMISSED")),
+            ai_detector="YOLOv8n (HALO, trained on synthetic rubble scenes)" if P.vision.available() else "stand-in scores",
+            ai_people_detected=f"{sum(v.get('confidence', 0) >= 0.5 for v in humans if v.get('photo'))}/{sum(1 for v in humans if v.get('photo'))}",
+            ai_decoys_called_person=sum(v.get("confidence", 0) >= 0.5 for v in decoys),
             sos_events=self.sos,
             total_flight_distance_m=round(sum(d.distance for d in self.drones), 1),
             victims=sorted(V.values(), key=lambda v: -v["priority"]),
@@ -513,6 +516,7 @@ if __name__ == "__main__":
               "found_by_thermal_camera", "found_by_phone_signal_only", "partial_body_victims_found",
               "heat_signals_discarded", "decoys_sent_for_verification", "time_first_victim_s",
               "time_all_thermal_victims_s", "rerouted_routes", "rescue_teams", "victims_reached_by_rescuers",
-              "mean_detection_to_rescuer_s", "false_alarms_dismissed_by_rescuer", "phone_location_error_m"]:
+              "mean_detection_to_rescuer_s", "false_alarms_dismissed_by_rescuer", "ai_detector", "ai_people_detected",
+              "ai_decoys_called_person", "phone_location_error_m"]:
         print(f"{k:32s} {r[k]}")
     print(f"{'sos_events':32s} {len(r['sos_events'])}")

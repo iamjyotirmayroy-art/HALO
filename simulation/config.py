@@ -52,7 +52,8 @@ set_base((-1.5, 6.0))
 NUM_DRONES = 6
 SEARCH_ALT = 1.0                       # metres; each drone gets its own layer (+ALT_LAYER*i)
 ALT_LAYER = 0.12
-INSPECT_ALT = 0.55                     # dives lower to photograph a heat signal
+INSPECT_ALT = 0.55                     # dives lower for a close thermal look at a heat signal
+PHOTO_ALT = 1.15                       # AI photo is taken on the way down, below this height
 SPEED = 0.9                            # m/s cruise
 LANE = 1.5                             # lawn-mower lane spacing (m)
 SEPARATION = 0.6                       # min horizontal gap before vertical deconfliction
