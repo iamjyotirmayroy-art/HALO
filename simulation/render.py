@@ -141,7 +141,7 @@ def render_map(sim, base):
     # title
     cov = 100 * sim.coverage()
     found = sum(1 for v in sim.command.victims.values() if v["is_human"])
-    cv2.putText(img, f"HALO Rescuer Map   t={sim.t:5.1f}s   searched {cov:4.1f}%   victims found {found}/{sim.n_humans}",
+    cv2.putText(img, f"HALO Rescuer Map   t={sim.t:5.1f}s   searched {cov:4.1f}%   victims found {found}",
                 (8, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
     return img
 

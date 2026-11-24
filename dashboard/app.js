@@ -130,7 +130,7 @@ function render(st) {
   const H = humans(st);
   $("k-time").textContent = st.t.toFixed(1) + " s";
   $("k-cov").textContent = st.coverage.toFixed(0) + "%";
-  $("k-found").textContent = `${H.filter(v => v.source === "phone" || !v.status.startsWith("POSSIBLE")).length} / ${S.n_victims}`;
+  $("k-found").textContent = H.filter(v => v.source === "phone" || !v.status.startsWith("POSSIBLE")).length;
   $("k-reached").textContent = st.victims.filter(v => v.reached_t).length;
   $("k-online").textContent = `${st.drones.filter(d => d.online && d.state !== "TRAPPED").length} / ${st.drones.length}`;
 
@@ -541,7 +541,7 @@ function newMission() {   // clear the last mission off the map and open the wiz
   Object.values(G).forEach(g => g.clearLayers());
   if (zoneOverlay) zoneOverlay = null;
   S = ST = null; lastT = -1; area = null; summaryShown = sawRunning = primed = false; seenAlerts.clear();
-  ["k-time", "k-cov", "k-found", "k-reached", "k-online"].forEach((id, i) => $(id).textContent = ["0.0 s", "0%", "0 / 0", "0", "0 / 0"][i]);
+  ["k-time", "k-cov", "k-found", "k-reached", "k-online"].forEach((id, i) => $(id).textContent = ["0.0 s", "0%", "0", "0", "0 / 0"][i]);
   ["alerts", "drones", "teams", "victims", "feed"].forEach(id => $(id).innerHTML = id === "alerts" ? '<div class="empty">No alerts</div>' : "");
   $("modal").hidden = true; $("banner").hidden = true; legend.remove();
   setMode("NO MISSION", "live");
@@ -673,7 +673,7 @@ function showSummary(st) {
   const H = humans(st), reached = H.filter(v => v.reached_t).length, verified = st.victims.filter(v => v.photo && v.confidence < .5).length;
   const unsafe = Object.values(st.routes).filter(r => r.direct.length).length;
   openModal(`<h2 style="margin:0 0 8px">${st.aborted ? "⛔ Mission aborted" : "✅ Mission summary"}</h2><div class="kpis" style="flex-wrap:wrap">
-    <div class="kpi"><b>${H.length} / ${S.n_victims}</b><span>Victims found</span></div><div class="kpi"><b>${reached}</b><span>Reached by teams</span></div>
+    <div class="kpi"><b>${H.length}</b><span>Victims found</span></div><div class="kpi"><b>${reached}</b><span>Reached by teams</span></div>
     <div class="kpi"><b>${(st.t / 60).toFixed(1)} min</b><span>Mission time</span></div>
     <div class="kpi"><b>${S.area_m2 > 1e6 ? (S.area_m2 / 1e6).toFixed(2) + " km²" : S.area_m2.toLocaleString() + " m²"}</b><span>Area · ${st.coverage.toFixed(0)}% searched</span></div>
     <div class="kpi"><b>${st.sos.length + verified + unsafe}</b><span>Alerts</span></div></div>
