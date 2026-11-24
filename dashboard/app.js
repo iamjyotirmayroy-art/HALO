@@ -706,6 +706,7 @@ async function pollLive() {
     if (mode !== "live") return;
     if (!$("mode").textContent.startsWith("🚀")) setMode(S ? "WAITING FOR SIMULATION…" : "NO MISSION", "live");
     if (!S && !wizardShown) { wizardShown = true; newMission(); }   // first visit: start with the mission wizard
+    return setTimeout(pollLive, S ? 500 : 2000);   // no mission yet: check less often
   }
   setTimeout(pollLive, 500);
 }
@@ -726,7 +727,7 @@ function stopReplay() {
   clearTimeout(replayTimer);
   ["btn-play", "speed", "scrub"].forEach(id => $(id).hidden = true);
   $("btn-replay").textContent = "Replay";
-  if (mode !== "live") { mode = "live"; S = null; lastT = -1; pollLive(); }
+  if (mode !== "live") { mode = "live"; S = null; lastT = -1; wizardShown = false; pollLive(); }   // back to live: wizard unless a mission runs
 }
 function tick() {
   if (mode !== "replay") return;
