@@ -543,7 +543,7 @@ function newMission() {   // clear the last mission off the map and open the wiz
   S = ST = null; lastT = -1; area = null; summaryShown = sawRunning = primed = false; seenAlerts.clear();
   ["k-time", "k-cov", "k-found", "k-reached", "k-online"].forEach((id, i) => $(id).textContent = ["0.0 s", "0%", "0 / 0", "0", "0 / 0"][i]);
   ["alerts", "drones", "teams", "victims", "feed"].forEach(id => $(id).innerHTML = id === "alerts" ? '<div class="empty">No alerts</div>' : "");
-  $("modal").hidden = true;
+  $("modal").hidden = true; $("banner").hidden = true; legend.remove();
   setMode("NO MISSION", "live");
   settingUp = true; setupT = null;
   $("launch").hidden = false; $("fleet").hidden = true;
