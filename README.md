@@ -93,7 +93,7 @@ A web app for the rescue team that also installs as a phone app. All data stays 
 </tr>
 </table>
 
-**Also in the dashboard:** place search (fly to any city) · satellite or street map · draw the search area (rectangle or polygon) · set the rescue base · live KPIs · alerts with sound (SOS, heat signal being checked, photo needs verifying, unsafe route) · drone cards (battery, state, online / mesh relay / offline-autonomous) · recall a drone · victim filters · event feed · full mission replay with timeline.
+**Also in the dashboard:** a 4-step mission wizard · ⛔ Abort / 🚀 New mission · place search (any city or town worldwide) · satellite map with no blank tiles (where high-zoom photos don't exist, as in small towns, the best available photo is zoomed instead) · street map · draw the search area (rectangle or polygon) · set the rescue base · live KPIs · alerts with sound (SOS, heat signal being checked, photo needs verifying, unsafe route) · drone cards (battery, state, online / mesh relay / offline-autonomous) · recall a drone · victim filters · event feed · full mission replay with timeline.
 
 ---
 
@@ -172,7 +172,7 @@ python simulation/pilot_rl.py                     # retrain the RL pilot (about 
 python -m pytest tests                            # 12 tests
 ```
 
-**In the dashboard:** 🛩 **Fleet → ＋ Add drone** (until 🟢 READY TO FLY) → search a city → 📍 **Set rescue base** → 🔍 **Search for humans** → draw the area → 🚀 **Launch**.
+**In the dashboard** the mission wizard opens by itself: **1 · choose the place** (any city, town or address worldwide) → **2 · add drones** (starts at 0 drones · 0 agents, each drone gets its own AI agent and a pre-flight check) → **3 · draw the search area** → **4 · 🔴 Go live**. During a mission, **⛔ Abort mission** stops it. Afterwards, **🚀 New mission** clears the map and starts over.
 
 <details>
 <summary><b>Dashboard details</b></summary>
