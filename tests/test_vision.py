@@ -16,3 +16,12 @@ def test_yolo_finds_a_person_and_nothing_on_empty_ground():
     seen = shot()
     p.disconnect(cl)
     assert not empty and seen and seen[0][0] == "person"
+
+
+import pilot_rl
+
+
+@pytest.mark.skipif(not pilot_rl.available(), reason="trained pilot not installed")
+def test_learned_pilot_reaches_waypoints_on_unseen_courses():
+    r = pilot_rl.evaluate(n=300, seed=7)
+    assert r["goal"] > 0.85 and r["crash"] < 0.08

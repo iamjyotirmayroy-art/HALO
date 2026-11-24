@@ -120,13 +120,15 @@ def ai_check(source, measured_temp, rng, dets=None):
         conf = float(np.clip(rng.normal(CONF_MEAN[source.kind], 0.06), 0.01, 0.99))
         label = LABELS[source.kind]
     body_temp_like = 28.0 <= measured_temp <= 39.5
+    if measured_temp > 45.0:                       # thermal + camera fusion: far too hot to be a living body
+        conf, label = min(conf, 0.25), "too hot for a person (fire / hot debris)"
     if conf >= 0.85:
         status, label_out = "CONFIRMED VICTIM", label
     elif conf >= 0.5:
         status, label_out = "LIKELY VICTIM - please verify", label
     else:
         status = "POSSIBLE VICTIM - please verify"
-        label_out = "unclear - no person seen" if label == "no person seen" else f"unclear ({label}?)"
+        label_out = label if label.startswith("too hot") else "unclear - no person seen" if label == "no person seen" else f"unclear ({label}?)"
     return dict(label=label_out, confidence=round(conf, 2), status=status,
                 body_temp_like=body_temp_like, measured_temp=round(measured_temp, 1))
 

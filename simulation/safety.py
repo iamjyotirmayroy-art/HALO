@@ -28,7 +28,7 @@ def _cap(v, u, gap, v_other=np.zeros(3)):
     return v - u * excess if excess > 0 else v
 
 
-def safe_velocity(v_des, pos, v_prev, dist, neighbours, bounds, dt):
+def safe_velocity(v_des, pos, v_prev, dist, neighbours, bounds, dt, margin=MARGIN):
     """Filter a desired velocity into a safe one. Returns (velocity, True if the filter had to step in)."""
     v = np.asarray(v_des, float).copy()
     sp = np.linalg.norm(v[:2])
@@ -41,7 +41,7 @@ def safe_velocity(v_des, pos, v_prev, dist, neighbours, bounds, dt):
         v = v_prev + dv * (ACCEL * dt / n)
     wanted = v.copy()
     for u, d in zip(RAYS[dist < RANGE], dist[dist < RANGE]):
-        v = _cap(v, u, d - MARGIN)
+        v = _cap(v, u, d - margin)
     for q, qv in neighbours:
         r = q - pos
         d = np.linalg.norm(r)

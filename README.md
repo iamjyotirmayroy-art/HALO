@@ -9,7 +9,8 @@
 ![Simulation](https://img.shields.io/badge/Simulation-PyBullet-3d8bff)
 ![Vision](https://img.shields.io/badge/Vision-YOLOv8n-8b5cf6)
 ![Dashboard](https://img.shields.io/badge/Dashboard-Web%20%2B%20Phone%20App-22d3ee)
-![Tests](https://img.shields.io/badge/Tests-11%20passing-2ecc71)
+![Pilot](https://img.shields.io/badge/Pilot-RL%20(PPO)-f59e0b)
+![Tests](https://img.shields.io/badge/Tests-12%20passing-2ecc71)
 
 *Physical AI Hackathon: From Simulation to Reality · Disaster Management (Robotics + AI)*
 
@@ -17,7 +18,7 @@
 
 <sub>Rescuer dashboard during a live mission: swarm zones, drone flight paths, thermal hotspots with AI verdicts and hazard-aware rescue routes on satellite imagery.</sub>
 
-[Results](#-results) · [How it works](#-how-it-works) · [Dashboard](#-rescuer-dashboard) · [AI](#-the-ai) · [Quick start](#-quick-start) · [Sim-to-real](#-from-simulation-to-reality)
+[Results](#-results) · [Dashboard](#-rescuer-dashboard) · [How it works](#%EF%B8%8F-how-it-works) · [AI](#-the-ai) · [Quick start](#-quick-start) · [Sim-to-real](#-from-simulation-to-reality)
 
 </div>
 
@@ -39,6 +40,7 @@ A rescuer adds drones, draws the disaster area on a satellite map and presses **
 1. **Splits the area** evenly across the swarm, and re-splits it whenever a drone recharges, gets trapped or rejoins.
 2. **Searches every zone in parallel**, with thermal cameras and phone-signal scanners.
 3. **Checks every heat signal with AI** (YOLOv8) for whole people *or* partial body parts, and never discards one.
+   Drones are flown by a **pilot trained with reinforcement learning**, kept safe by an anti-crash shield.
 4. **Plans a hazard-free route** to each victim and **sends rescue teams**, most urgent first.
 5. **Streams it all live** to a dashboard that runs on a laptop or as an app on a phone.
 
@@ -58,16 +60,17 @@ One simulated earthquake-hit city block (~100 m at 1:8 scale) with **20 hidden v
 
 | Metric | Result |
 |---|---|
-| Area searched | **100 %** in 104 s, despite one drone trapped and one recharging |
-| First victim found | **3.9 s** · all visible victims by **61 s** |
+| Area searched | **100 %** in 117 s, despite one drone trapped and one recharging |
+| First victim found | **3.9 s** · all visible victims by **64 s** |
 | Partial-body victims (hand / foot / head) | **7 / 7** found |
-| Buried victims found by phone signal only | **3 / 3** (location error 0.1 – 0.7 m) |
+| Buried victims found by phone signal only | **3 / 3** (location error 0 – 1.1 m) |
 | Heat signals discarded | **0**. The one person the AI was unsure about went to a rescuer, who confirmed it from the photo |
 | Decoys | **3 / 3** recognised as *not a person* |
-| Avg. time from detection to a team reaching the victim | **76 s** |
-| Unsafe direct routes caught and rerouted | **4** (radiation, unstable building) |
+| Avg. time from detection to a team reaching the victim | **73 s** |
+| Drone crashes (flown by the learned RL pilot) | **0** |
+| Unsafe direct routes caught and rerouted | **3** (radiation, unstable building) |
 
-**Swarm vs single drone** (same scene): full search **98 s vs 298 s**, all visible victims **64 s vs 203 s**.
+**Swarm vs single drone** (same scene, classic pilot): full search **98 s vs 298 s**, all visible victims **64 s vs 203 s**.
 
 ---
 
@@ -139,7 +142,18 @@ A web app for the rescue team that also installs as a phone app. All data stays 
 | Body part (hand / foot / head) | 0.91 | |
 | **All** | **0.87** | **0.80** |
 
-In the full mission it found **16 of 17** visible people at ≥ 50 % confidence and called **none** of the 3 decoys a person. The one it missed (a foot, 16 %) still went to a rescuer, because of HALO's rule: **no heat signal is ever discarded.** Confidence ≥ 85 % is a confirmed victim, 50–85 % is likely, and anything below goes to a rescuer to verify.
+In the full mission it found **16 of 17** visible people at ≥ 50 % confidence and called **none** of the 3 decoys a person. The camera verdict is fused with the thermal reading, so anything far hotter than a body (a fire at 180 °C) can't be marked as a confirmed person. The one it missed (a foot, 16 %) still went to a rescuer, because of HALO's rule: **no heat signal is ever discarded.** Confidence ≥ 85 % is a confirmed victim, 50–85 % is likely, and anything below goes to a rescuer to verify.
+
+**Learned pilot: trained with reinforcement learning.** `simulation/pilot_rl.py` trains a small neural network (PPO, 2 × 64 units) to fly a drone to its next waypoint while dodging buildings, debris and other moving drones. It sees only what a real drone has: **16 rangefinder rays**, how fast each ray is shrinking (which separates moving drones from walls), the direction to the waypoint and its own velocity. Training runs in a fast simulated world of random obstacle courses (7 M steps, about 10 min on a CPU). The weights are exported to plain numpy, so a drone's onboard computer needs no deep-learning library.
+
+| Learned pilot | Result |
+|---|---|
+| Unseen random courses (1,000) | **91 % reach the waypoint**, 4 % collide (with drones that don't dodge back) |
+| Full HALO mission with 3 / 6 / 8 / 10 drones | **0 crashes** every time, 100 % searched, 20 / 20 victims |
+| Share of cruise flight flown by the learned pilot | **80–90 %** |
+| Safety shield had to step in | **0.6–5 %** of the time |
+
+It is a **shielded** policy: the anti-crash filter (rangefinders, 0.35 m margin, drone separation, geofence) sits between the network and the motors. Inside a building's 0.5 m safety buffer, or near the charging pads, the classic path follower takes over. A learned policy with a verifiable safety layer is how safety-critical robots use RL. Run with `--pilot classic` to compare.
 
 **Drone agents.** Every drone runs its own copy of the same agent (a state machine: search → investigate → photograph → return to charge → rejoin, plus trapped / SOS). The agents plan their own paths and make their own battery and safety decisions, so they keep working without a radio link.
 
@@ -154,7 +168,8 @@ pip install -r simulation/requirements.txt        # PyBullet compiles on first i
 python dashboard/serve.py                         # rescuer dashboard → http://localhost:8000/dashboard/
 python simulation/run_mission.py --gui            # or: run a mission in the 3D simulator window
 python simulation/train_vision.py                 # retrain the victim detector (about 40 min on CPU)
-python -m pytest tests                            # 11 tests
+python simulation/pilot_rl.py                     # retrain the RL pilot (about 10 min on CPU)
+python -m pytest tests                            # 12 tests
 ```
 
 **In the dashboard:** 🛩 **Fleet → ＋ Add drone** (until 🟢 READY TO FLY) → search a city → 📍 **Set rescue base** → 🔍 **Search for humans** → draw the area → 🚀 **Launch**.
@@ -195,7 +210,8 @@ The agents only send velocity set-points and read sensor data, so moving to real
 | YOLOv8n victim detector (people + body parts), trained on synthetic scenes | ✅ Done |
 | Rescuer dashboard: fleet setup, satellite map, search for humans, AI verdicts, camera wall, manual takeover, replay, phone app | ✅ Done |
 | Anti-crash filter for manual flight (rangefinders, separation, geofence) | ✅ Done |
-| Learned (RL) flight policy · relief-drop simulation · real-hardware PX4 backend | 🔜 Next |
+| Learned RL pilot (PPO) with safety shield, 0 crashes with 3–10 drones | ✅ Done |
+| Relief-drop simulation · real-hardware PX4 backend | 🔜 Next |
 
 > **About the simulation:** the aftershock is a scripted event, charging is sped up for the demo, and the buildings and victims are simulated. On the dashboard map they are fitted onto the area you draw.
 

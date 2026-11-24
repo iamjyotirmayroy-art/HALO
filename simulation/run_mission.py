@@ -23,6 +23,7 @@ from agents import DroneAgent, CommandAI, SEARCH, INVESTIGATE, RETURN, CHARGING,
 import perception as P
 import render as R
 import safety
+import pilot_rl
 from rescue import Dispatcher
 from rescuer_link import RescuerLink
 from cameras import CameraPool
@@ -32,6 +33,9 @@ import dashboard_export as DX
 class Mission:
     def __init__(self, n_drones, n_teams, gui, out, video, aftershock=True, realtime=False):
         self.aftershock = aftershock
+        self.pilot = pilot_rl.LearnedPilot() if C.PILOT == "learned" and pilot_rl.available() else None
+        self.pilot_steps = self.shield_steps = self.crashes = self.cruise_steps = 0
+        self.contacts = set()
         self.realtime = realtime or gui
         self.out = out
         os.makedirs(out, exist_ok=True)
@@ -190,6 +194,7 @@ class Mission:
                     self.cover_owner[m] = d.id
             # slower loop (4 Hz): comms, phone scans, trails, battery-aware thinking
             if step % slow_every == 0:
+                self.count_crashes()
                 self.update_comms()
                 for d in self.drones:
                     if d.state in (SEARCH, INVESTIGATE, RETURN) and d.pos[2] > 0.3:
@@ -303,6 +308,24 @@ class Mission:
         n = np.linalg.norm(step)
         d.hold = d.pos + (step if n <= 0.25 else step * 0.25 / n)   # no wind-up when the filter holds it back
         return d.hold.copy()
+
+    def in_buffer(self, xy):
+        """Inside the 0.5 m safety buffer around a building (inflated map), where the learned pilot hands over."""
+        return 0 <= xy[0] < C.AREA and 0 <= xy[1] < C.AREA and bool(self.fly_blocked[to_cell(xy)])
+
+    def count_crashes(self):
+        """A crash = an airborne drone touching anything (building, debris, another drone). Trapped drones excluded."""
+        now = set()
+        for d, body in zip(self.drones, self.env.DRONE_IDS):
+            if d.state != TRAPPED and d.pos[2] > 0.2:
+                now |= {(d.id, c[2]) for c in p.getContactPoints(bodyA=body, physicsClientId=self.client)
+                        if c[2] != self.env.PLANE_ID}
+        for i, body in now - self.contacts:
+            other = next((f"drone {o.id}" for o, b in zip(self.drones, self.env.DRONE_IDS) if b == body), "an obstacle")
+            self.event(f"Drone {i} touched {other} at ({self.drones[i].pos[0]:.1f}, {self.drones[i].pos[1]:.1f}, "
+                       f"{self.drones[i].pos[2]:.1f}) - {self.drones[i].state}", "warn")
+        self.crashes += len(now - self.contacts)
+        self.contacts = now
 
     def _abandon(self, d):
         """Drop a half-done photo check so the swarm searches that spot again."""
@@ -476,6 +499,10 @@ class Mission:
             ai_detector="YOLOv8n (HALO, trained on synthetic rubble scenes)" if P.vision.available() else "stand-in scores",
             ai_people_detected=f"{sum(v.get('confidence', 0) >= 0.5 for v in humans if v.get('photo'))}/{sum(1 for v in humans if v.get('photo'))}",
             ai_decoys_called_person=sum(v.get("confidence", 0) >= 0.5 for v in decoys),
+            pilot="learned RL policy + anti-crash shield" if self.pilot else "classic path follower",
+            learned_pilot_share_pct=round(100 * self.pilot_steps / max(1, self.cruise_steps), 1),
+            shield_interventions_pct=round(100 * self.shield_steps / max(1, self.pilot_steps), 2),
+            crashes=self.crashes,
             sos_events=self.sos,
             total_flight_distance_m=round(sum(d.distance for d in self.drones), 1),
             victims=sorted(V.values(), key=lambda v: -v["priority"]),
@@ -496,10 +523,11 @@ if __name__ == "__main__":
     ap.add_argument("--max-time", type=float, default=C.MAX_TIME)
     ap.add_argument("--teams", type=int, default=C.NUM_RESCUERS)
     ap.add_argument("--area", help="JSON from the dashboard: poly + base (sim metres), origin (lat, lon), scale")
+    ap.add_argument("--pilot", choices=["learned", "classic"], default=C.PILOT, help="cruise flight controller")
     ap.add_argument("--live", action="store_true",
                     help="real-time pace for the dashboard: rescuer verifies photos and can fly drones")
     a = ap.parse_args()
-    C.MAX_TIME = a.max_time
+    C.MAX_TIME, C.PILOT = a.max_time, a.pilot
     if a.area:
         with open(a.area) as f:
             spec = json.load(f)
@@ -517,6 +545,6 @@ if __name__ == "__main__":
               "heat_signals_discarded", "decoys_sent_for_verification", "time_first_victim_s",
               "time_all_thermal_victims_s", "rerouted_routes", "rescue_teams", "victims_reached_by_rescuers",
               "mean_detection_to_rescuer_s", "false_alarms_dismissed_by_rescuer", "ai_detector", "ai_people_detected",
-              "ai_decoys_called_person", "phone_location_error_m"]:
+              "ai_decoys_called_person", "pilot", "learned_pilot_share_pct", "shield_interventions_pct", "crashes", "phone_location_error_m"]:
         print(f"{k:32s} {r[k]}")
     print(f"{'sos_events':32s} {len(r['sos_events'])}")

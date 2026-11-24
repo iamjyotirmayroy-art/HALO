@@ -76,3 +76,10 @@ Everything is stored locally in `results/`. No cloud or database is needed for t
 - **Battery** uses a drain model (hover plus speed). Charging is sped up 6% per second so the demo stays short.
 - **The aftershock** is a scripted event that triggers while a drone is inside the damaged building, so the SOS behaviour always shows in the demo.
 - **Scale**: Crazyflie-size drones in a 12 m block. The same logic scales to a real city block with bigger drones.
+
+## Trained models
+
+| Model | Train | What it does |
+|---|---|---|
+| `models/halo_yolov8n.pt` | `python train_vision.py` (~40 min CPU) | YOLOv8n victim detector (person + body parts), trained on 900 synthetic rubble photos rendered in PyBullet |
+| `models/pilot_policy.npz` | `python pilot_rl.py` (~10 min CPU) | RL (PPO) pilot: rangefinders + waypoint → velocity, run in numpy behind the anti-crash shield. `--pilot classic` to compare |

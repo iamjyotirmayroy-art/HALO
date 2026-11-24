@@ -10,6 +10,8 @@ import numpy as np
 import config as C
 from planning import split_zones, coverage_waypoints, flight_path, line_clear
 import perception as P
+import pilot_rl
+import safety
 
 # drone states (MANUAL = flown by a rescuer from the dashboard, through the safety filter)
 IDLE, SEARCH, INVESTIGATE, RETURN, CHARGING, TRAPPED, DONE, MANUAL = (
@@ -216,11 +218,34 @@ class DroneAgent:
         if dist < 0.3 or (len(self.route) == 1 and dist < 0.2):
             self.route.pop(0)
             return
-        # carrot: a point SPEED*lookahead ahead along the path
         near_pad = np.linalg.norm(self.xy - self.pad) < 1.2
+        if sim is not None:
+            sim.cruise_steps += 1
+        # learned pilot cruises; inside a building's safety buffer (map) or near the pads the classic follower takes over
+        if sim is not None and sim.pilot and not near_pad and not sim.in_buffer(self.xy):
+            self.target = np.r_[self.xy + self.learned_velocity(sim, goal) * 0.4, alt]
+            return
+        # classic carrot: a point a short look-ahead along the path
         step = min(dist, 0.15 if near_pad else 0.35)
         carrot = self.xy + d / dist * step
         self.target = np.array([carrot[0], carrot[1], alt])
+
+    def learned_velocity(self, sim, goal):
+        """Trained RL pilot flies toward the waypoint from rangefinder rays; the anti-crash filter shields it."""
+        dist = safety.ranges(sim.client, self.pos)
+        rays = dist[:pilot_rl.N_RAYS]
+        prev = getattr(self, "_rays", rays)
+        self._rays = rays
+        vel = sim.obs[self.id][10:13]
+        v = sim.pilot.act(pilot_rl.observe(rays, prev, goal - self.xy, vel[:2]))
+        others = [(o.pos, sim.obs[o.id][10:13]) for o in sim.drones if o is not self]
+        v_prev = getattr(self, "_v_cmd", np.r_[vel[:2], 0.0])          # smooth against the last command, not
+        v, self.shielded = safety.safe_velocity(np.r_[v, 0.0], self.pos, v_prev, dist, others, sim.bounds,   # the lagging
+                                                 1 / C.CTRL_FREQ, margin=C.SHIELD_MARGIN)                   # measured speed
+        self._v_cmd = v
+        sim.pilot_steps += 1
+        sim.shield_steps += self.shielded
+        return v[:2]
 
     def report(self, sim, msg):
         msg = dict(msg); msg.setdefault("drone", self.id); msg["t_sent"] = round(sim.t, 1)
