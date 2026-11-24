@@ -279,10 +279,10 @@ function beep(urgent) {
   } catch (e) { /* audio unavailable: banner only */ }
 }
 $("btn-mute").onclick = () => {
-  muted = !muted; $("btn-mute").textContent = muted ? "🔕" : "🔔";
+  muted = !muted; $("btn-mute").classList.toggle("muted", muted);
   try { localStorage.setItem("halo-muted", muted ? "1" : "0"); } catch (e) { /* not persisted */ }
 };
-$("btn-mute").textContent = muted ? "🔕" : "🔔";
+$("btn-mute").classList.toggle("muted", muted);
 
 let toastTimer = 0;
 function toast(html, ms = 3500) {
@@ -420,10 +420,11 @@ function renderWall(st) {
     if (!tile) return;
     tile.querySelector(".hd").innerHTML = `<b style="color:${color(i)}">● Drone ${i}</b><span>${d.state}</span><span class="sp"></span>
       ${cam && cam.heat ? `<span class="badge">🔥 HEAT ${cam.heat.toFixed(1)}°C</span>` : ""}
-      ${cam && cam.people.length ? `<span class="badge ai">🤖 ${esc(cam.people.join(", "))}</span>` : ""}<span>🔋${d.battery.toFixed(0)}%</span><span class="vmeta">${signal(d)}</span>`;
+      ${cam && cam.people.length ? `<span class="badge ai">🤖 ${esc([...new Set(cam.people)].join(", "))}</span>` : ""}<span>🔋${d.battery.toFixed(0)}%</span><span class="vmeta">${signal(d)}</span>`;
     tile.classList.toggle("heat", !!(cam && cam.heat));
     const flag = tile.querySelector(".flag"), sos = d.state === "TRAPPED";
-    flag.hidden = d.online && !sos && tile.querySelector("img").naturalWidth > 0;   // first frame arrived
+    if (tile.querySelector("img").naturalWidth) tile.dataset.ok = 1;   // a frame has arrived (stays true while the next one loads)
+    flag.hidden = d.online && !sos && !!tile.dataset.ok;
     flag.className = "flag" + (sos ? " sos" : "");
     flag.textContent = sos ? "🆘 SOS · TRAPPED" : !d.online ? "NO SIGNAL" : "CONNECTING…";
   });
@@ -531,8 +532,9 @@ function wizard() {   // tick off the 4 steps and highlight the next one
 function missionButton() {
   const live = missionLive(), b = $("btn-mission");
   b.classList.toggle("danger", live); b.classList.toggle("primary", !live);
-  b.firstChild.textContent = live ? "⛔" : "🚀";
-  $("btn-mission-t").textContent = live ? " Abort mission" : ST && ST.final ? " New mission" : " Start mission";
+  $("btn-mission-ic").innerHTML = live ? '<svg class="ic" viewBox="0 0 24 24"><rect class="fill" x="6.5" y="6.5" width="11" height="11" rx="2"/></svg>'
+    : '<svg class="ic" viewBox="0 0 24 24"><path class="fill" d="M8 5.5v13l10.5-6.5z"/></svg>';
+  $("btn-mission-t").textContent = live ? "Abort mission" : ST && ST.final ? "New mission" : "Start mission";
 }
 function newMission() {   // clear the last mission off the map and open the wizard
   stopReplay();
@@ -543,7 +545,7 @@ function newMission() {   // clear the last mission off the map and open the wiz
   ["alerts", "drones", "teams", "victims", "feed"].forEach(id => $(id).innerHTML = id === "alerts" ? '<div class="empty">No alerts</div>' : "");
   $("modal").hidden = true;
   setMode("NO MISSION", "live");
-  settingUp = true;
+  settingUp = true; setupT = null;
   $("launch").hidden = false; $("fleet").hidden = true;
   fleetCall(null, null, true).then(wizard);
   missionButton();
@@ -682,12 +684,16 @@ function showSummary(st) {
 // ---------------- data: live polling or replay ----------------
 function setMode(text, cls) { const m = $("mode"); m.textContent = text; m.className = "pill " + cls; }
 const staticKey = s => JSON.stringify([s.origin, s.poly, s.base, s.n_drones, s.map_scale]);
-let progressAt = Date.now(), wizardShown = false, settingUp = false;   // settingUp: wizard open, last mission cleared
+let progressAt = Date.now(), wizardShown = false, settingUp = false, setupT = null;   // settingUp: wizard open, last mission cleared
 async function pollLive() {
   if (mode !== "live") return;
   try {
     const j = await (await fetch(DATA + "live.json?_=" + Date.now())).json();
-    if (settingUp) return setTimeout(pollLive, 500);      // a new mission is being set up: don't redraw the old one
+    if (!wizardShown) { wizardShown = true; newMission(); }   // every visit starts on the mission wizard
+    if (settingUp) {   // keep a finished / frozen mission off screen; switch over only if a mission is really running
+      if (j.state.final || setupT === null || j.state.t === setupT) { if (setupT === null) setupT = j.state.t; return setTimeout(pollLive, 500); }
+      settingUp = false; $("launch").hidden = true;
+    }
     if (!S || staticKey(S) !== staticKey(j.static)) { S = j.static; lastT = -1; drawStatic(); }
     if (!ST || j.state.t !== ST.t) progressAt = Date.now();
     render(j.state);

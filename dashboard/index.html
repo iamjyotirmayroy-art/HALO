@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>HALO Rescuer Dashboard</title>
-<meta name="theme-color" content="#0d1117">
+<meta name="theme-color" content="#0a0e15">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="HALO">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/halo-logo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="style.css">
@@ -18,7 +18,7 @@
 </head>
 <body>
 <header>
-  <div class="brand">HALO <small>Rescuer Dashboard</small></div>
+  <div class="brand"><img src="icons/halo-logo.svg" alt="" width="30" height="30"><div><span>HALO</span><small>Rescue Operations</small></div></div>
   <form id="search" class="search" autocomplete="off">
     <input id="q" type="search" placeholder="Search a city, area or address" aria-label="Search a place">
     <div id="results" class="results"></div>
@@ -31,11 +31,11 @@
     <div class="kpi"><b id="k-online">0 / 0</b><span>Drones online</span></div>
   </div>
   <div class="actions">
-    <button id="btn-fleet" title="Add drones and run pre-flight checks">🛩<span class="t"> Fleet</span> <b id="fleet-count" class="badge">0</b></button>
-    <button id="btn-base" title="Click the map to place the rescue base">📍<span class="t"> Set rescue base</span></button>
-    <button id="btn-mission" class="primary">🚀<span class="t" id="btn-mission-t"> Start mission</span></button>
-    <button id="btn-cams">📹<span class="t"> Cameras</span></button>
-    <button id="btn-mute" title="Alert sound on/off">🔔</button>
+    <button id="btn-fleet" title="Add drones and run pre-flight checks"><svg class="ic" viewBox="0 0 24 24"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9"/><circle cx="6" cy="6" r="2.6"/><circle cx="18" cy="6" r="2.6"/><circle cx="6" cy="18" r="2.6"/><circle cx="18" cy="18" r="2.6"/></svg><span class="t">Fleet</span> <b id="fleet-count" class="badge">0</b></button>
+    <button id="btn-base" title="Click the map to place the rescue base"><svg class="ic" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.8-6.5-11.2a6.5 6.5 0 1 1 13 0C18.5 15.2 12 21 12 21z"/><circle cx="12" cy="9.8" r="2.3"/></svg><span class="t">Rescue base</span></button>
+    <button id="btn-mission" class="primary"><span id="btn-mission-ic"><svg class="ic" viewBox="0 0 24 24"><path class="fill" d="M8 5.5v13l10.5-6.5z"/></svg></span><span class="t" id="btn-mission-t">Start mission</span></button>
+    <button id="btn-cams"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="6.5" width="12.5" height="11" rx="2"/><path d="M15.5 10.5l5-3v9l-5-3z"/></svg><span class="t">Cameras</span></button>
+    <button id="btn-mute" class="icon" title="Alert sound on/off" aria-label="Alert sound"><svg class="ic" viewBox="0 0 24 24"><path d="M6 16.5v-5.5a6 6 0 1 1 12 0v5.5l1.5 1.5h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg></button>
   </div>
   <div class="mode">
     <span id="mode" class="pill live">CONNECTING…</span>
@@ -50,7 +50,7 @@
   <div id="map"></div>
   <div id="banner" class="banner" hidden></div>
   <div id="launch" class="card launch" hidden>
-    <div class="row between"><h3>🚀 New mission</h3><button id="launch-cancel" aria-label="Close">✕</button></div>
+    <div class="row between"><h3>New mission</h3><button id="launch-cancel" aria-label="Close">✕</button></div>
     <ol class="steps">
       <li id="st1"><b>Choose the place</b>
         <form id="wiz-search" class="row" autocomplete="off"><input id="wiz-q" type="search" placeholder="Any city, town or address">
@@ -65,11 +65,11 @@
           <button id="draw-finish" hidden>✔ Finish</button></div></li>
       <li id="st4"><b>Go live</b>
         <div class="row"><label>Rescue teams <input id="n-teams" type="number" min="1" max="10" value="3"></label>
-          <button id="launch-go" class="primary golive" disabled>🔴 Go live · <span id="launch-ready">0</span> drones</button></div></li>
+          <button id="launch-go" class="primary golive" disabled><i class="dot"></i>Go live · <span id="launch-ready">0</span> drones</button></div></li>
     </ol>
   </div>
   <div id="fleet" class="card fleet" hidden>
-    <div class="row between"><h3>🛩 Fleet · pre-flight check</h3><button id="fleet-close" aria-label="Close">✕</button></div>
+    <div class="row between"><h3>Fleet · pre-flight check</h3><button id="fleet-close" aria-label="Close">✕</button></div>
     <p class="vmeta" id="fleet-sum">No drones connected yet. Add as many as you have.</p>
     <div class="row"><button id="fleet-add" class="primary">＋ Add drone</button><button id="fleet-add5">＋5</button></div>
     <div id="fleet-list"></div>
@@ -86,9 +86,9 @@
 </main>
 
 <nav id="tabs" class="tabs">
-  <button data-tab="alerts">🚨<span>Alerts</span></button><button data-tab="drones">🛩<span>Drones</span></button>
-  <button data-tab="victims">🧍<span>Victims</span></button><button data-tab="teams">🚑<span>Teams</span></button>
-  <button data-tab="cams">📹<span>Cameras</span></button>
+  <button data-tab="alerts"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.2v.3"/></svg><span>Alerts</span></button><button data-tab="drones"><svg class="ic" viewBox="0 0 24 24"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9"/><circle cx="6" cy="6" r="2.6"/><circle cx="18" cy="6" r="2.6"/><circle cx="6" cy="18" r="2.6"/><circle cx="18" cy="18" r="2.6"/></svg><span>Drones</span></button>
+  <button data-tab="victims"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="7" r="3.2"/><path d="M5.5 20.5c.6-4 3.2-6.5 6.5-6.5s5.9 2.5 6.5 6.5"/></svg><span>Victims</span></button><button data-tab="teams"><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="6.5" width="17" height="13" rx="2"/><path d="M9 6.5V4.5h6v2M12 10v6M9 13h6"/></svg><span>Teams</span></button>
+  <button data-tab="cams"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="6.5" width="12.5" height="11" rx="2"/><path d="M15.5 10.5l5-3v9l-5-3z"/></svg><span>Cameras</span></button>
 </nav>
 
 <div id="camwall" class="overlay" hidden>

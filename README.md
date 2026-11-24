@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🛰️ HALO
+<img src="dashboard/icons/halo-logo.svg" alt="HALO logo" width="96">
+
+# HALO
 ### Hazard-Aware Lifesaving Operations
 
 **An autonomous AI drone swarm that finds trapped people after disasters and guides rescuers to them safely.**
